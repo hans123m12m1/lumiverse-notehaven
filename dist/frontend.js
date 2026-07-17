@@ -373,11 +373,139 @@ const NH_CSS = `
   /* ---------- image lightbox ---------- */
   .nh-lightbox { position: fixed; inset: 0; z-index: 9999; background: rgba(8,7,14,.82); display: flex; align-items: center; justify-content: center; cursor: zoom-out; backdrop-filter: blur(4px); }
   .nh-lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+
+  /* ================= WORKSPACE 2.0 ================= */
+  .nh-ws { flex: 1; display: flex; min-width: 0; min-height: 0; }
+  .nh-ws-groups { flex: 1; display: flex; min-width: 0; min-height: 0; }
+  .nh-split { display: flex; flex: 1 1 0; min-width: 0; min-height: 0; }
+  .nh-split.col { flex-direction: column; }
+  .nh-splitwrap { display: flex; min-width: 0; min-height: 0; }
+  .nh-divider { flex: 0 0 5px; margin: 0 -1px; cursor: col-resize; z-index: 5; border-radius: 3px; transition: background .15s; touch-action: none; }
+  .nh-divider:hover, .nh-divider.active { background: var(--nh-accent); opacity: .45; }
+  .nh-divider.v { margin: -1px 0; cursor: row-resize; }
+  .nh-gframe { flex: 1; display: flex; flex-direction: column; min-width: 140px; min-height: 0; border: 1px solid transparent; border-radius: 10px; overflow: hidden; }
+  .nh-gframe.focused { border-color: color-mix(in srgb, var(--nh-accent) 25%, transparent); }
+  .nh-minitabs { display: flex; flex: 0 0 auto; gap: 4px; padding: 5px 6px; overflow-x: auto; border-bottom: 1px solid var(--nh-border); scrollbar-width: thin; }
+  .nh-minitab { display: inline-flex; align-items: center; gap: 4px; max-width: 140px; padding: 3px 9px; border: 1px solid var(--nh-border); border-radius: 8px; background: transparent; color: var(--nh-muted); font-size: 11px; cursor: pointer; white-space: nowrap; }
+  .nh-minitab span { overflow: hidden; text-overflow: ellipsis; }
+  .nh-minitab.active { color: var(--nh-text); border-color: color-mix(in srgb, var(--nh-accent) 50%, var(--nh-border)); }
+  .nh-minitab-empty { opacity: .5; font-size: 11px; padding: 2px 6px; }
+  .nh-minitabs.nh-drop { outline: 1.5px dashed var(--nh-accent); }
+  .nh-pane { flex: 1; overflow: auto; padding: 10px 14px; font-size: calc(var(--nh-editor-fs, 13.5px) - 0.5px); line-height: 1.65; cursor: pointer; }
+  .nh-pane img { max-width: 100%; }
+  .nh-pane-title { display: flex; align-items: center; gap: 7px; font-size: 13.5px; margin-bottom: 6px; }
+  .nh-pane-title b { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nh-pane-edit { cursor: pointer; opacity: .55; }
+  .nh-pane-edit:hover { opacity: 1; }
+  .nh-pane-empty, .nh-pane-loading { display: block; opacity: .5; font-size: 12px; text-align: center; padding: 26px 8px; }
+  .nh-nico { display: inline-flex; align-items: center; flex: 0 0 auto; }
+
+  /* tabs strip (focused group) */
+  .nh-tabs { display: flex; flex: 0 0 auto; align-items: flex-end; gap: 3px; padding: 6px 10px 0; overflow-x: auto; scrollbar-width: thin; }
+  .nh-tab { display: inline-flex; align-items: center; gap: 5px; max-width: 180px; padding: 5px 9px; border: 1px solid var(--nh-border); border-bottom: 0; border-radius: 9px 9px 0 0; background: transparent; color: var(--nh-muted); font-size: 12px; cursor: pointer; user-select: none; white-space: nowrap; touch-action: manipulation; }
+  .nh-tab:hover { color: var(--nh-text); }
+  .nh-tab.active { background: color-mix(in srgb, var(--nh-accent) 12%, transparent); color: var(--nh-text); border-color: color-mix(in srgb, var(--nh-accent) 45%, var(--nh-border)); }
+  .nh-tab.pinned .nh-tab-t { display: none; }
+  .nh-tab-t { overflow: hidden; text-overflow: ellipsis; }
+  .nh-tab-x { opacity: .45; padding: 0 2px; border-radius: 4px; }
+  .nh-tab-x:hover { opacity: 1; color: #ff8f8f; }
+  .nh-tab.nh-drop { outline: 1px dashed var(--nh-accent); }
+  .nh-tab-plus { color: var(--nh-muted); border-style: dashed; padding: 5px 11px; }
+  .nh-nico-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+  /* source mode */
+  .nh-source { display: none; }
+  .nh-mode-source .nh-surfacewrap { display: none; }
+  .nh-mode-source .nh-source { display: block; flex: 1; width: 100%; border: 0; outline: none; resize: none; background: var(--nh-bg); color: var(--nh-text); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: var(--nh-editor-fs, 13.5px); line-height: 1.55; padding: 12px 14px; tab-size: 2; }
+
+  /* find & replace bar */
+  .nh-findbar { display: none; flex: 0 0 auto; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid var(--nh-border); flex-wrap: wrap; }
+  .nh-findbar.on { display: flex; }
+  .nh-findbar input { flex: 1 1 110px; min-width: 86px; background: color-mix(in srgb, var(--nh-bg) 55%, transparent); border: 1px solid var(--nh-border); color: var(--nh-text); border-radius: 8px; padding: 5px 8px; font-size: 12px; outline: none; }
+  .nh-findbar input:focus { border-color: var(--nh-accent); }
+  .nh-find-count { font-size: 11px; color: var(--nh-muted); min-width: 50px; text-align: center; flex: 0 0 auto; }
+  .nh-findbar .nh-iconbtn { width: 26px; height: 26px; font-size: 12px; }
+
+  /* window controls: drag / minimize / fullscreen / left grip */
+  .nh-modal.nh-anchored { position: absolute; margin: 0; }
+  .nh-modal.nh-min .nh-mbody { display: none; }
+  .nh-modal.nh-min { height: auto !important; }
+  .nh-modal.nh-min .nh-rsz, .nh-modal.nh-min .nh-mresize { display: none; }
+  .nh-modal.nh-full { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; max-width: none !important; max-height: none !important; border-radius: 0; position: absolute; margin: 0; }
+  .nh-mhead { cursor: grab; }
+  .nh-mhead.nh-grabbing { cursor: grabbing; user-select: none; }
+  .nh-mresize-l { left: 4px; right: auto; bottom: 3px; cursor: nesw-resize; }
+  .nh-iconbtn.is-active { border-color: var(--nh-accent); color: var(--nh-text); }
+  .nh-iconbtn:disabled { opacity: .35; cursor: default; }
+
+  /* folder pin chip + icon preview popover */
+  .nh-fpin { font-size: 10px; flex: 0 0 auto; }
+  .nh-icopop { position: fixed; z-index: 2147483000; width: 190px; background: var(--nh-bg, #17171f); color: var(--nh-text, #e8e6f0); border: 1px solid var(--nh-border, #2c2c3a); border-radius: 14px; padding: 12px; box-shadow: 0 18px 50px rgba(0,0,0,.55); text-align: center; }
+  .nh-icopop-art { display: flex; justify-content: center; margin-bottom: 8px; }
+  .nh-icopop-art .nh-fico { font-size: 42px; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; border-radius: 18px; background: color-mix(in srgb, var(--nh-accent, #b28cff) 10%, transparent); overflow: hidden; }
+  .nh-icopop-art .nh-fico img { width: 64px; height: 64px; object-fit: cover; border-radius: 18px; }
+  .nh-icopop-art .nh-fico svg { width: 42px !important; height: 42px !important; }
+  .nh-icopop-name { font-weight: 700; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nh-icopop-meta { font-size: 11px; color: var(--nh-muted, #9aa0ab); margin-top: 3px; }
+
+  /* ================= FILE TREE NAVIGATOR ================= */
+  .nh-nav { display: flex; flex-direction: column; height: 100%; padding: 10px; gap: 8px; }
+  .nh-nav-top { display: flex; gap: 5px; align-items: center; flex: 0 0 auto; }
+  .nh-nav .nh-grow { flex: 1; }
+  .nh-nav-sort { max-width: 128px; font-size: 12px; }
+  .nh-nav-top .nh-iconbtn { width: 30px; height: 30px; font-size: 13px; }
+  .nh-nav-searchrow { display: none; flex: 0 0 auto; }
+  .nh-nav-q { width: 100%; font-size: 12px; padding: 7px 10px; }
+  .nh-nav-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding-bottom: 30vh; }
+  .nh-nav-sec { display: flex; align-items: center; gap: 6px; padding: 9px 6px 4px; font-size: 10.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--nh-muted); cursor: pointer; user-select: none; }
+  .nh-nav-sec .nh-nav-chev svg { transition: transform .18s; }
+  .nh-nav-sec.collapsed .nh-nav-chev svg { transform: rotate(-90deg); }
+  .nh-nav-row { display: flex; align-items: center; gap: 7px; width: 100%; text-align: left; background: transparent; border: 0; color: var(--nh-text); padding: 6px 8px 6px calc(8px + var(--depth, 0) * 15px); border-radius: 9px; cursor: pointer; font-size: 12.5px; font-family: inherit; }
+  .nh-nav-row:hover { background: color-mix(in srgb, var(--nh-accent) 9%, transparent); }
+  .nh-nav-row.active { background: color-mix(in srgb, var(--nh-accent) 16%, transparent); }
+  .nh-nav-row .nh-nav-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nh-nav-chev { width: 13px; flex: 0 0 auto; display: inline-flex; align-items: center; color: var(--nh-muted); }
+  .nh-nav-chev svg { transition: transform .18s; }
+  .nh-nav-fold.collapsed > .nh-nav-chev svg { transform: rotate(-90deg); }
+  .nh-nav-row.nh-drop { outline: 1.5px dashed var(--nh-accent); background: color-mix(in srgb, var(--nh-accent) 12%, transparent); }
+  .nh-nav-ico { width: 16px; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; }
+  .nh-nbadge { font-size: 10px; color: var(--nh-muted); background: color-mix(in srgb, var(--nh-bg) 40%, transparent); border: 1px solid var(--nh-border); padding: 0 6px; border-radius: 8px; flex: 0 0 auto; }
+  .nh-nav-rootdrop { margin: 2px 0 6px; padding: 5px 8px; border: 1px dashed var(--nh-border); border-radius: 8px; color: var(--nh-muted); font-size: 11px; text-align: center; flex: 0 0 auto; }
+  .nh-nav-rootdrop.nh-drop { border-color: var(--nh-accent); color: var(--nh-text); background: color-mix(in srgb, var(--nh-accent) 10%, transparent); }
+  .nh-nav-hint { font-size: 11px; color: var(--nh-muted); opacity: .75; padding: 4px 8px; }
+  .nh-nav-tagswrap { padding: 2px 4px; }
+  .nh-nav-tag { margin: 3px; cursor: pointer; }
+  .nh-nav-fold .nh-fico { font-size: 13px; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; flex: 0 0 auto; }
+  .nh-nav-fold .nh-fico img { width: 18px; height: 18px; object-fit: cover; border-radius: 5px; }
 `;
 
 /* ================================================================ */
 /* 2. Icons                                                          */
 /* ================================================================ */
+
+/* SVG icon library for files & folders — line icons, color via currentColor */
+const NH_ICON_LIB = {
+  note: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>',
+  quill: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4c-6 0-12 5-13 12-1 4 1 5 1 5s8-2 11-8c1.5-3 1-9 1-9z"/><path d="M7 17L4 20"/></svg>',
+  flame: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1 4-4 6-4 10a4 4 0 0 0 8 0c0-1-.5-2-.5-2s4 2 4 6a7.5 7.5 0 0 1-15 0C4.5 9 11 6 12 2z"/></svg>',
+  book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19a2 2 0 0 0 2 2h13"/></svg>',
+  star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 6.5 7 .8-5.2 4.7 1.5 6.9L12 17.5 5.7 21l1.5-6.9L2 9.3l7-.8z"/></svg>',
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21C7 16.5 3 13 3 8.8 3 6 5.2 4 7.6 4c1.8 0 3.4 1 4.4 2.6C13 5 14.6 4 16.4 4 18.8 4 21 6 21 8.8c0 4.2-4 7.7-9 12.2z"/></svg>',
+  moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/></svg>',
+  gem: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M9 3l3 6 3-6M12 9l0 12"/></svg>',
+  leaf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c8 2 16-4 16-14-8-2-16 4-16 14z"/><path d="M4 20c2-6 6-10 10-12"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg>',
+  music: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+  film: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></svg>',
+  image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 3 3 4-4 4 4"/></svg>',
+  code: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6l-6 6 6 6M16 6l6 6-6 6"/></svg>',
+  globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14 0 18M12 3c-3 3.5-3 14 0 18"/></svg>',
+  sword: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20L16 8M14 4l6 6-8 8-6-6z"/><path d="M6 14l4 4M4 20l3-1"/></svg>',
+  potion: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v5l-5 8a3.5 3.5 0 0 0 3 5h8a3.5 3.5 0 0 0 3-5l-5-8V3"/><path d="M7.5 14h9"/></svg>',
+  map: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>',
+  crown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18l-1-9 5 3 5-7 5 7 5-3-1 9z"/><path d="M3 21h18"/></svg>',
+  skull: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="7"/><circle cx="9" cy="10" r="1.3"/><circle cx="15" cy="10" r="1.3"/><path d="M9 17v3M15 17v3M12 17v4"/></svg>',
+};
 
 const ICONS = {
   notebook: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5a2.5 2.5 0 0 1-2.5 2.5H6.5A2.5 2.5 0 0 1 4 18.5Z"/><path d="M20 3v13"/><path d="M8 7.5h5M8 11h3"/></svg>',
@@ -753,6 +881,10 @@ export function setup(ctx) {
     logoSrc: defaultLogoDataUrl(),
     bgSrc: null,
     booted: false,
+    ws: null,            // { layout, focusGid } — tab groups & splits (2.0)
+    hist: {},            // gid -> { back:[noteId], fwd:[noteId] }
+    findIdx: -1, findMatches: [],
+    fullscreen: false,
   };
 
   const metaOf = (id) => state.index.notes.find((n) => n.id === id);
@@ -771,7 +903,11 @@ export function setup(ctx) {
         <div class="nh-mhead">
           <span class="nh-mtitle">${ICONS.notebook.replace('width="20" height="20"', 'width="17" height="17"')}<span class="nh-mt-text">Notehaven</span></span>
           <div class="nh-search">${ICONS.search}<input type="text" placeholder="Search notes, #tags…" spellcheck="false"></div>
+          <button class="nh-iconbtn nh-ws-back" title="Back in history">◀</button>
+          <button class="nh-iconbtn nh-ws-fwd" title="Forward in history">▶</button>
           <button class="nh-iconbtn nh-rail-toggle" title="Toggle note list">${ICONS.list}</button>
+          <button class="nh-iconbtn nh-ws-min" title="Minimize to header">—</button>
+          <button class="nh-iconbtn nh-ws-full" title="Fullscreen workspace">⛶</button>
           <button class="nh-iconbtn nh-themebtn" title="Switch to light theme" style="font-size:14px">☀️</button>
           <button class="nh-iconbtn nh-settings-btn" title="Notehaven settings — appearance, CSS, themes">${ICONS.gear}</button>
           <button class="nh-newbtn">${ICONS.plus}<span>New note</span></button>
@@ -791,21 +927,37 @@ export function setup(ctx) {
             <div class="nh-list nh-scroll"></div>
             <div class="nh-rail-resizer" title="Drag to resize the rail"></div>
           </div>
+          <div class="nh-ws">
+            <div class="nh-ws-groups"></div>
           <div class="nh-editor">
+            <div class="nh-tabs"></div>
             <div class="nh-editor-head">
               <input class="nh-title" type="text" placeholder="Untitled Note" spellcheck="false">
               <div class="nh-modegroup">
-                <button class="nh-modebtn" data-mode="write">✍ Write</button>
+                <button class="nh-modebtn" data-mode="write">✍ Live</button>
                 <button class="nh-modebtn" data-mode="read">📖 Read</button>
+                <button class="nh-modebtn" data-mode="source">⌨ Source</button>
               </div>
+              <button class="nh-iconbtn nh-ed-more" title="Note options — split, find, move, export…" style="font-size:16px;font-weight:800;line-height:1;padding-bottom:3px">⋮</button>
               <button class="nh-iconbtn nh-pinbtn" title="Pin note">${ICONS.pin}</button>
               <button class="nh-iconbtn danger nh-delbtn" title="Delete note">${ICONS.trash}</button>
             </div>
             <div class="nh-toolbar"></div>
+            <div class="nh-findbar">
+              <input class="nh-find-in" type="text" placeholder="Find in note…" spellcheck="false">
+              <span class="nh-find-count"></span>
+              <button class="nh-iconbtn nh-find-prev" title="Previous match">↑</button>
+              <button class="nh-iconbtn nh-find-next" title="Next match">↓</button>
+              <input class="nh-replace-in" type="text" placeholder="Replace with…" spellcheck="false">
+              <button class="nh-iconbtn nh-replace-one" title="Replace current match">⇄</button>
+              <button class="nh-iconbtn nh-replace-all" title="Replace all">⇄⇄</button>
+              <button class="nh-iconbtn nh-find-close" title="Close find">✕</button>
+            </div>
             <div class="nh-canvas">
               <div class="nh-surfacewrap nh-scroll">
                 <div class="nh-preview nh-editor-surface" contenteditable="true" spellcheck="true"></div>
               </div>
+              <textarea class="nh-source nh-scroll" spellcheck="false" placeholder="# raw markdown source"></textarea>
             </div>
             <div class="nh-statusbar">
               <span class="nh-savestate"><span class="nh-pulse"></span><span class="nh-savetext">Saved</span></span>
@@ -813,10 +965,12 @@ export function setup(ctx) {
               <span class="nh-words"></span><span class="nh-when"></span>
             </div>
           </div>
+          </div>
         </div>
         <div class="nh-rsz nh-rsz-e" title="Drag to resize width"></div>
         <div class="nh-rsz nh-rsz-s" title="Drag to resize height"></div>
         <div class="nh-mresize" title="Drag to resize the window">◢</div>
+        <div class="nh-mresize nh-mresize-l" title="Drag to resize from the left">◣</div>
       </div>
     </div>
   `);
@@ -841,6 +995,18 @@ export function setup(ctx) {
   const selectToggle = overlayWrap.querySelector('.nh-select-toggle');
   const railResizer = overlayWrap.querySelector('.nh-rail-resizer');
   const mResize = overlayWrap.querySelector('.nh-mresize');
+  const mResizeL = overlayWrap.querySelector('.nh-mresize-l');
+  const wsGroupsEl = overlayWrap.querySelector('.nh-ws-groups');
+  const tabsEl = overlayWrap.querySelector('.nh-tabs');
+  const editorEl = overlayWrap.querySelector('.nh-editor');
+  const sourceEl = overlayWrap.querySelector('.nh-source');
+  const findbar = overlayWrap.querySelector('.nh-findbar');
+  const edMoreBtn = overlayWrap.querySelector('.nh-ed-more');
+  const wsBackBtn = overlayWrap.querySelector('.nh-ws-back');
+  const wsFwdBtn = overlayWrap.querySelector('.nh-ws-fwd');
+  const wsMinBtn = overlayWrap.querySelector('.nh-ws-min');
+  const wsFullBtn = overlayWrap.querySelector('.nh-ws-full');
+  const mheadEl = overlayWrap.querySelector('.nh-mhead');
   const titleInput = overlayWrap.querySelector('.nh-title');
   const pinBtn = overlayWrap.querySelector('.nh-pinbtn');
   const delBtn = overlayWrap.querySelector('.nh-delbtn');
@@ -860,6 +1026,7 @@ export function setup(ctx) {
   function openModal(noteId) {
     state.modalOpen = true;
     overlay.classList.add('nh-open');
+    if (state.ws) buildWs(); // seats the editor into the focused pane
     if (noteId && noteId !== state.currentId && metaOf(noteId)) openNote(noteId);
     else if (state.currentId) { renderList(); renderPreview(); }
     // don't pop the on-screen keyboard open on phones
@@ -964,7 +1131,7 @@ export function setup(ctx) {
         ${meta.pinned ? `<span class="nh-li-pin">${ICONS.pinSmall}</span>` : ''}
       </div>
       ${meta.snippet ? `<div class="nh-li-snippet">${escapeHtml(meta.snippet)}</div>` : ''}
-      <div class="nh-li-meta"><span>${fmtDate(meta.updatedAt)}</span><span>${meta.words ?? 0}w</span></div>`;
+      <div class="nh-li-meta"><span>${fmtDate(meta.updatedAt)}</span><span>${meta.words ?? 0}w · ~${meta.tokens ?? Math.ceil((meta.words || 0) * 1.25) ?? 0}t</span></div>`;
     item.addEventListener('click', onClick);
     item.addEventListener('contextmenu', (e) => {
       e.preventDefault();
@@ -1006,15 +1173,19 @@ export function setup(ctx) {
   }
 
   /* [testable:buildSections:start] */
-  // One scannable "All" view: unfiled notes under "Inbox", then every folder
-  // as its own section — even empty ones, so they never become unreachable.
-  // Incoming notes stay in their existing order (pinned first, then recency).
+  // One scannable "All" view: 📌 pinned notes OWN THE TOP (their own smart
+  // section), then Inbox, then folders — pinned folders first. Pinned notes
+  // leave their folder section so nothing shows twice.
   function buildSections(notes, folders) {
     const sections = [];
-    const unfiled = notes.filter((n) => !n.folderId);
+    const pinned = notes.filter((n) => n.pinned);
+    const rest = notes.filter((n) => !n.pinned);
+    if (pinned.length) sections.push({ id: 'pinned', name: 'Pinned', icon: '📌', folder: null, items: pinned });
+    const unfiled = rest.filter((n) => !n.folderId);
     if (unfiled.length) sections.push({ id: 'inbox', name: 'Inbox', icon: '📥', folder: null, items: unfiled });
-    for (const folder of folders) {
-      sections.push({ id: folder.id, name: folder.name, icon: folder.icon, color: folder.color, folder, items: notes.filter((n) => n.folderId === folder.id) });
+    const ordered = [...folders].sort((a, b) => ((b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)));
+    for (const folder of ordered) {
+      sections.push({ id: folder.id, name: folder.name, icon: folder.icon, color: folder.color, folder, items: rest.filter((n) => n.folderId === folder.id) });
     }
     return sections;
   }
@@ -1055,7 +1226,17 @@ export function setup(ctx) {
     const ico = section.folder
       ? folderIconHtml(section.folder)
       : `<span class="nh-fico">${section.icon}</span>`;
-    hdr.innerHTML = `${ico}<span class="nh-fname">${escapeHtml(section.name)}</span><span class="nh-fcount">${section.items.length}</span><span class="nh-fchev">${ICONS.chev}</span>`;
+    hdr.innerHTML = `${ico}<span class="nh-fname">${escapeHtml(section.name)}</span>${section.folder && section.folder.pinned ? '<span class="nh-fpin" title="Pinned folder">📌</span>' : ''}<span class="nh-fcount">${section.items.length}</span><span class="nh-fchev">${ICONS.chev}</span>`;
+    // folder picture preview: tap the icon chip (not the row) for a little popover — works on PC *and* touch
+    const icoChip = hdr.querySelector('.nh-fico');
+    if (icoChip && section.folder) {
+      icoChip.style.cursor = 'zoom-in';
+      icoChip.title = 'Preview this folder’s look';
+      icoChip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        folderIconPreview(section.folder, icoChip);
+      });
+    }
     // dropdown behavior: tap (anywhere on the row, chevron included) hides/shows its notes
     hdr.title = collapsed ? `Show notes in “${section.name}”` : `Hide notes in “${section.name}”`;
     hdr.addEventListener('click', () => toggleCollapse(section.id));
@@ -1141,13 +1322,52 @@ export function setup(ctx) {
     listEl.scrollTop = scrollTop;
   }
 
+  // every list refresh also refreshes the surfaces that mirror the index
+  const renderListCore = renderList;
+  renderList = function () {
+    renderListCore();
+    renderTabs();
+    renderNavIfActive();
+  };
+
   /* ---------------- folders (categories) ---------------- */
 
   function folderIconHtml(folder) {
     const icon = folder?.icon || '';
+    if (icon.startsWith('svg:')) {
+      const svg = NH_ICON_LIB[icon.slice(4)];
+      if (svg) return `<span class="nh-fico" style="color:${folder?.color || '#b28cff'}">${svg.replace('<svg', '<svg width="15" height="15"')}</span>`;
+    }
     if (icon.startsWith('img:')) return `<span class="nh-fico"><img data-folder-ico="${icon.slice(4)}" alt=""></span>`;
     if (icon) return `<span class="nh-fico">${escapeHtml(icon)}</span>`;
     return `<span class="nh-fico" style="background:${folder?.color || '#b28cff'}30">📁</span>`;
+  }
+
+  // Little popover that shows the folder's icon/picture big — tap-away closes it.
+  let icoPop = null;
+  function folderIconPreview(folder, anchor) {
+    if (icoPop) { icoPop.remove(); icoPop = null; }
+    const pop = document.createElement('div');
+    pop.className = 'nh-icopop';
+    const big = folderIconHtml(folder);
+    pop.innerHTML = `<div class="nh-icopop-art">${big}</div><div class="nh-icopop-name">${escapeHtml(folder.name)}</div><div class="nh-icopop-meta">${state.index.notes.filter((n) => n.folderId === folder.id).length} note(s)${folder.pinned ? ' · 📌 pinned' : ''}</div>`;
+    document.body.appendChild(pop);
+    const r = anchor.getBoundingClientRect();
+    const pw = 190;
+    pop.style.left = `${Math.min(Math.max(8, r.left), (window.innerWidth || 1280) - pw - 8)}px`;
+    pop.style.top = `${Math.min(r.bottom + 8, (window.innerHeight || 800) - 150)}px`;
+    icoPop = pop;
+    // img icons hydrate async into the popover too
+    pop.querySelectorAll('img[data-folder-ico]').forEach(async (img) => {
+      const id = img.getAttribute('data-folder-ico');
+      if (!state.imageCache.has(id)) {
+        try { const { dataUrl } = await rpc('get_image', { imageId: id }, 25000); state.imageCache.set(id, dataUrl || ''); } catch (_) { state.imageCache.set(id, ''); }
+      }
+      const src = state.imageCache.get(id);
+      if (src) img.src = src;
+    });
+    const close = (e) => { if (icoPop && !icoPop.contains(e.target)) { icoPop.remove(); icoPop = null; window.removeEventListener('pointerdown', close, true); } };
+    setTimeout(() => window.addEventListener('pointerdown', close, true), 10);
   }
 
   async function hydrateFolderIcons() {
@@ -1161,6 +1381,58 @@ export function setup(ctx) {
       const src = state.imageCache.get(img.getAttribute('data-folder-ico'));
       if (src) img.src = src;
     });
+  }
+
+  /* One icon picker for folders AND notes: emoji ▸, svg library ▸, upload, clear.
+   * Returns the icon string to save, or null when the user backed out. */
+  async function pickIconFlow(x, y, current, { allowImage } = {}) {
+    const emojis = ['📁', '📂', '📝', '🌙', '⭐', '💼', '❤️', '📚', '🎨', '🎮', '💡', '🔥', '🌸', '🧙', '🐉', '🗡'];
+    const first = await ctx.ui.showContextMenu({
+      position: { x, y },
+      items: [
+        { key: 'emoji', label: '😀 Emoji icon…' },
+        { key: 'svg', label: '🧩 Icon library (svg, colored)…' },
+        ...(allowImage ? [{ key: 'upload', label: '📷 Upload image…' }] : []),
+        ...(current ? [{ key: 'clear', label: '✖ Remove icon' }] : []),
+      ],
+    });
+    if (!first.selectedKey) return null;
+    if (first.selectedKey === 'clear') return '';
+    if (first.selectedKey === 'emoji') {
+      const sub = await ctx.ui.showContextMenu({
+        position: { x, y },
+        items: emojis.map((e) => ({ key: `e:${e}`, label: `${e}${current === e ? ' ✓' : ''}`, active: current === e })),
+      });
+      return sub.selectedKey && sub.selectedKey.startsWith('e:') ? sub.selectedKey.slice(2) : null;
+    }
+    if (first.selectedKey === 'svg') {
+      const keys = Object.keys(NH_ICON_LIB);
+      const sub = await ctx.ui.showContextMenu({
+        position: { x, y },
+        items: keys.map((k) => ({ key: `s:${k}`, label: `${current === 'svg:' + k ? '✓ ' : ''}${k}`, active: current === 'svg:' + k })),
+      });
+      return sub.selectedKey && sub.selectedKey.startsWith('s:') ? 'svg:' + sub.selectedKey.slice(2) : null;
+    }
+    if (first.selectedKey === 'upload') {
+      try {
+        const files = await ctx.uploads.pickFile({
+          accept: ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/svg+xml'],
+          multiple: false,
+          maxSizeBytes: 2 * 1024 * 1024,
+        });
+        const file = files[0];
+        if (!file) return null;
+        const dataUrl = await downscaleImage(file, 256);
+        if (!dataUrl) { toast('error', 'Could not read that image'); return null; }
+        const { imageId } = await rpc('put_image', { name: file.name, dataUrl }, 30000);
+        state.imageCache.set(imageId, dataUrl);
+        return `img:${imageId}`;
+      } catch (err) {
+        if (err && !/cancel|abort/i.test(err.message || '')) toast('error', err.message || 'Icon upload failed');
+        return null;
+      }
+    }
+    return null;
   }
 
   async function createFolderFlow() {
@@ -1234,15 +1506,85 @@ export function setup(ctx) {
       position: { x, y },
       items: [
         { key: 'newnote', label: '＋ New note here' },
+        { key: 'newfile', label: '📄 New file (.txt/.json/.xml/.yaml)…' },
+        { key: 'newsub', label: '🗂 New subfolder' },
+        { key: 'pin', label: folder.pinned ? '📌 Unpin folder' : '📌 Pin folder to top', active: !!folder.pinned },
         { key: 'rename', label: '✏️ Rename folder' },
-        { key: 'icon', label: '🎨 Change icon…' },
+        { key: 'icon', label: '🎨 Icon & picture…' },
+        { key: 'color', label: '🌈 Change color…' },
+        { key: 'moveto', label: '🚚 Move folder into…' },
+        { key: 'dupfolder', label: '📑 Duplicate folder (with notes)' },
         { key: 'div1', label: '', type: 'divider' },
         { key: 'del-keep', label: '🗑 Delete folder (keep notes)', danger: true },
         { key: 'del-all', label: '🔥 Delete folder AND its notes', danger: true },
       ],
     });
     if (!selectedKey) return;
-    if (selectedKey === 'rename') startFolderRename(folder.id);
+    if (selectedKey === 'pin') await setFolderMeta(folder.id, { pinned: !folder.pinned });
+    else if (selectedKey === 'newsub') {
+      try {
+        const { index } = await rpc('create_folder', { name: 'New folder', parentId: folder.id });
+        state.index = index;
+        renderList();
+        toast('success', `Subfolder created inside “${folder.name}” 🗂`);
+      } catch (err) { toast('error', err.message || 'Could not create subfolder'); }
+    }
+    else if (selectedKey === 'newfile') {
+      const sub = await ctx.ui.showContextMenu({
+        position: { x, y },
+        items: ['.txt', '.json', '.xml', '.yaml'].map((ext) => ({ key: ext, label: `📄 untitled${ext}` })),
+      });
+      if (sub.selectedKey) {
+        try {
+          const res = await rpc('create_note', { title: `untitled${sub.selectedKey}`, folderId: folder.id });
+          state.index = res.index;
+          renderList();
+          await openNote(res.note.id);
+          setTimeout(() => { titleInput.focus(); titleInput.select(); }, 80);
+        } catch (err) { toast('error', err.message); }
+      }
+    }
+    else if (selectedKey === 'moveto') {
+      const cands = state.index.folders.filter((f) => f.id !== folder.id && !isFolderAncestor(state.index.folders, folder.id, f.id));
+      const sub = await ctx.ui.showContextMenu({
+        position: { x, y },
+        items: [
+          { key: 'root', label: '🏠 Move to root level', active: !folder.parentId },
+          ...cands.map((f) => ({ key: f.id, label: `📁 ${f.parentId ? '↳ ' : ''}${f.name}`, active: folder.parentId === f.id })),
+        ],
+      });
+      if (sub.selectedKey) {
+        try {
+          await setFolderMeta(folder.id, { parentId: sub.selectedKey === 'root' ? null : sub.selectedKey });
+          toast('success', sub.selectedKey === 'root' ? 'Folder lives at the root now 🏠' : 'Folder nested 🗂');
+        } catch (err) { toast('error', err.message); }
+      }
+    }
+    else if (selectedKey === 'dupfolder') {
+      try {
+        const titles = state.index.folders.map((f) => f.name);
+        const copyName = nextCopyName(titles, folder.name);
+        const src = state.index.notes.filter((n) => n.folderId === folder.id);
+        const { folder: nf } = await rpc('create_folder', { name: copyName, parentId: folder.parentId });
+        await setFolderMeta(nf.id, { color: folder.color, icon: folder.icon && !folder.icon.startsWith('img:') ? folder.icon : '' });
+        for (const meta of src) {
+          const { note } = await rpc('get_note', { id: meta.id });
+          await rpc('create_note', { title: meta.title, content: note ? note.content : '', folderId: nf.id });
+        }
+        state.index = (await rpc('list_notes')).index || state.index;
+        renderList();
+        toast('success', `Folder duplicated as “${copyName}” (${src.length} notes)`);
+      } catch (err) { toast('error', err.message || 'Could not duplicate folder'); }
+    }
+    else if (selectedKey === 'color') {
+      const swatches = ['#b28cff', '#ff8fb3', '#8fe3c0', '#8fc9ff', '#ffc98f', '#f28f8f', '#d6c98f', '#9aa0ab'];
+      const sub = await ctx.ui.showContextMenu({
+        position: { x, y },
+        items: swatches.map((c) => ({ key: c, label: `${folder.color === c ? '✓ ' : ''}● ${c}`, active: folder.color === c })),
+      });
+      if (sub.selectedKey) await setFolderMeta(folder.id, { color: sub.selectedKey });
+    }
+    else if (selectedKey === 'rename') startFolderRename(folder.id);
     else if (selectedKey === 'newnote') {
       try {
         const res = await rpc('create_note', { title: '', folderId: folder.id });
@@ -1255,37 +1597,10 @@ export function setup(ctx) {
     } else if (selectedKey === 'del-keep') await deleteFolder(folder, false);
     else if (selectedKey === 'del-all') await deleteFolder(folder, true);
     else if (selectedKey === 'icon') {
-      const emojis = ['📁', '📂', '🌙', '⭐', '💼', '❤️', '📚', '🎨', '🎮', '💡', '🔥', '🌸'];
-      const sub = await ctx.ui.showContextMenu({
-        position: { x, y },
-        items: [
-          ...emojis.map((e) => ({ key: `emoji:${e}`, label: `${e}${folder.icon === e ? ' ✓' : ''}`, active: folder.icon === e })),
-          { key: 'd', label: '', type: 'divider' },
-          { key: 'upload', label: '📷 Upload image…' },
-          { key: 'clear', label: '✖ Remove icon' },
-        ],
-      });
-      if (!sub.selectedKey) return;
-      if (sub.selectedKey.startsWith('emoji:')) await setFolderMeta(folder.id, { icon: sub.selectedKey.slice(6) });
-      else if (sub.selectedKey === 'clear') await setFolderMeta(folder.id, { icon: '' });
-      else if (sub.selectedKey === 'upload') {
-        try {
-          const files = await ctx.uploads.pickFile({
-            accept: ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/svg+xml'],
-            multiple: false,
-            maxSizeBytes: 2 * 1024 * 1024,
-          });
-          const file = files[0];
-          if (!file) return;
-          const dataUrl = await downscaleImage(file, 256);
-          if (!dataUrl) { toast('error', 'Could not read that image'); return; }
-          const { imageId } = await rpc('put_image', { name: file.name, dataUrl }, 30000);
-          state.imageCache.set(imageId, dataUrl);
-          await setFolderMeta(folder.id, { icon: `img:${imageId}` });
-          toast('success', 'Folder icon set');
-        } catch (err) {
-          if (err && !/cancel|abort/i.test(err.message || '')) toast('error', err.message || 'Icon upload failed');
-        }
+      const picked = await pickIconFlow(x, y, folder.icon || '', { allowImage: true });
+      if (picked !== null) {
+        await setFolderMeta(folder.id, { icon: picked });
+        if (picked) toast('success', 'Folder look updated 🎨');
       }
     }
   }
@@ -1473,7 +1788,9 @@ export function setup(ctx) {
       position: { x, y },
       items: [
         { key: 'rename', label: '✏️ Rename' },
+        { key: 'open-right', label: '↔ Open to the right (split view)' },
         { key: 'pin', label: meta.pinned ? '📌 Unpin' : '📌 Pin to top' },
+        { key: 'icon', label: '🖼 Change icon…' },
         { key: 'move', label: '📁 Move to…' },
         { key: 'div1', label: '', type: 'divider' },
         ...colors.map(([hex, label]) => ({ key: `color:${hex}`, label, active: meta.color === hex })),
@@ -1484,6 +1801,20 @@ export function setup(ctx) {
       ],
     });
     if (!selectedKey) return;
+    if (selectedKey === 'open-right') {
+      openModal(meta.id);
+      setTimeout(() => splitCurrent('row', meta.id), 80); // pane twins the note instantly
+      return;
+    }
+    if (selectedKey === 'icon') {
+      const picked = await pickIconFlow(x, y, meta.icon || '', { allowImage: true });
+      if (picked !== null) {
+        await rpc('set_meta', { id: meta.id, icon: picked });
+        meta.icon = picked;
+        renderList();
+      }
+      return;
+    }
     if (selectedKey === 'rename') {
       if (!state.modalOpen) openModal(meta.id);
       else await openNote(meta.id);
@@ -1511,11 +1842,10 @@ export function setup(ctx) {
       meta.color = color;
       renderList();
     } else if (selectedKey === 'duplicate') {
-      const { note } = await rpc('get_note', { id: meta.id });
-      const res = await rpc('create_note', { title: `${meta.title} (copy)`, content: note?.content || '' });
-      state.index = res.index;
-      renderList();
-      toast('success', 'Note duplicated');
+      try {
+        const n = await duplicateNoteSequential(meta); // "name.txt" → "name (1).txt", always max+1
+        if (n && meta.id === state.currentId) await openNote(n.id);
+      } catch (err) { toast('error', err.message || 'Could not duplicate'); }
     } else if (selectedKey === 'export') {
       exportNoteMarkdown(meta);
     } else if (selectedKey === 'delete') {
@@ -1533,8 +1863,11 @@ export function setup(ctx) {
     const meta = metaOf(state.currentId);
     if (!meta) { tagsEl.innerHTML = ''; wordsEl.textContent = ''; whenEl.textContent = ''; return; }
     tagsEl.innerHTML = (meta.tags || []).slice(0, 8).map((t) => `<span class="nh-tag">#${escapeHtml(t)}</span>`).join('');
+    const chars = (state.current?.content || '').length;
     const words = state.current ? (state.current.content.trim() ? state.current.content.trim().split(/\s+/).length : 0) : 0;
-    wordsEl.textContent = `${words} words · ${(state.current?.content || '').length} chars`;
+    const tokens = Math.ceil(chars / 4); // ≈ until Lumiverse exposes its tokenizer to extensions
+    const nls = ((state.current?.content || '').match(/\n/g) || []).length;
+    wordsEl.textContent = `${words} words · ~${tokens} tokens · ${nls} ↵`;
     whenEl.textContent = `edited ${fmtDate(meta.updatedAt)}`;
   }
 
@@ -1734,6 +2067,7 @@ export function setup(ctx) {
       titleInput.value = note.title;
       renderList(); refreshPinBtn(); renderStatus(); renderPreview();
       applyMode(state.settings.editor.mode);
+      wsNoteShown(id); // the workspace watches which note is on stage
     } catch (err) {
       toast('error', err.message || 'Could not open note');
     }
@@ -1768,6 +2102,15 @@ export function setup(ctx) {
   /* ---------------- editor events ---------------- */
 
   preview.addEventListener('input', () => commitSurface());
+
+  sourceEl.addEventListener('input', () => {
+    if (!state.current) return;
+    state.current.content = sourceEl.value;
+    setSaveState(true, 'Saving…');
+    renderStatus();
+    saveNoteSoon();
+    // live markdown under the hood stays fresh for other panes/tabs
+  });
 
   preview.addEventListener('paste', (e) => {
     if (preview.getAttribute('contenteditable') !== 'true') { e.preventDefault(); return; }
@@ -1833,13 +2176,18 @@ export function setup(ctx) {
   });
 
   function applyMode(mode) {
-    if (!['write', 'read'].includes(mode)) mode = 'write';
+    if (!['write', 'read', 'source'].includes(mode)) mode = 'write';
+    const prev = state.settings.editor.mode;
+    // entering source: mirror the live content into the textarea
+    if (mode === 'source' && prev !== 'source') sourceEl.value = state.current?.content || '';
     state.settings.editor.mode = mode;
-    canvas.classList.remove('nh-mode-write', 'nh-mode-read');
+    canvas.classList.remove('nh-mode-write', 'nh-mode-read', 'nh-mode-source');
     canvas.classList.add(`nh-mode-${mode}`);
     modeBtns.forEach((b) => b.classList.toggle('is-active', b.dataset.mode === mode));
     preview.setAttribute('contenteditable', mode === 'write' ? 'true' : 'false');
-    toolbar.style.display = mode === 'read' ? 'none' : '';
+    toolbar.style.display = mode === 'write' ? '' : 'none';
+    // leaving source: the textarea already kept state.current.content in sync
+    if (prev === 'source' && mode !== 'source') renderPreview();
     saveSettingsSoon();
   }
   modeBtns.forEach((b) => b.addEventListener('click', () => applyMode(b.dataset.mode)));
@@ -2183,6 +2531,396 @@ export function setup(ctx) {
       }
     }
   });
+
+
+  /* ==================================================== */
+  /* FILE TREE NAVIGATOR — second drawer tab: sortable,    */
+  /* searchable (words / -exclude / #tag / folder:name /   */
+  /* OR), reorderable sections, nested folders, badges,    */
+  /* drag & drop. Mobile = tap/long-press, PC = full dnd.  */
+  /* ==================================================== */
+
+  /* [testable:navPure:start] */
+  function sortNotes(notes, mode) {
+    const arr = [...notes];
+    const byDate = (k, dir) => arr.sort((a, b) => (new Date(a[k]) - new Date(b[k])) * dir);
+    switch (mode) {
+      case 'name-asc': return arr.sort((a, b) => String(a.title).localeCompare(String(b.title)));
+      case 'name-desc': return arr.sort((a, b) => String(b.title).localeCompare(String(a.title)));
+      case 'updated-asc': return byDate('updatedAt', 1);
+      case 'created-desc': return byDate('createdAt', -1);
+      case 'created-asc': return byDate('createdAt', 1);
+      case 'updated-desc':
+      default: return byDate('updatedAt', -1);
+    }
+  }
+  // query grammar: `word1 word2` every word must hit the title · `-word` exclude ·
+  // `#tag` must have tag · `folder:name` scopes by folder · `OR` splits groups
+  function parseNavQuery(str) {
+    const tokens = String(str || '').trim().split(/\s+/).filter(Boolean);
+    const groups = [[]];
+    for (const tok of tokens) {
+      if (tok.toUpperCase() === 'OR' && groups[groups.length - 1].length) { groups.push([]); continue; }
+      groups[groups.length - 1].push(tok);
+    }
+    return groups.map((grp) => {
+      const o = { and: [], not: [], tags: [], folder: null };
+      for (const t of grp) {
+        if (t.startsWith('-') && t.length > 1) o.not.push(t.slice(1).toLowerCase());
+        else if (t.startsWith('#') && t.length > 1) o.tags.push(t.slice(1).toLowerCase());
+        else if (/^folder:/i.test(t) && t.length > 7) o.folder = t.slice(7).toLowerCase();
+        else o.and.push(t.toLowerCase());
+      }
+      return o;
+    }).filter((g) => g.and.length || g.not.length || g.tags.length || g.folder);
+  }
+  function navGroupMatch(meta, folders, g) {
+    const title = String(meta.title || '').toLowerCase();
+    if (g.not.some((w) => title.includes(w))) return false;
+    if (!g.and.every((w) => title.includes(w))) return false;
+    if (!g.tags.every((t) => (meta.tags || []).some((x) => x.toLowerCase() === t))) return false;
+    if (g.folder) {
+      const f = folders.find((x) => x.id === meta.folderId);
+      if (!f || !f.name.toLowerCase().includes(g.folder)) return false;
+    }
+    return true;
+  }
+  function navQueryMatch(meta, folders, groups) {
+    if (!groups.length) return true;
+    return groups.some((g) => navGroupMatch(meta, folders, g));
+  }
+  // nested folders → tree. roots have parentId null/missing (byParent key '')
+  function buildFolderTree(folders, notes) {
+    const byParent = new Map();
+    for (const f of folders) {
+      const k = f.parentId || '';
+      if (!byParent.has(k)) byParent.set(k, []);
+      byParent.get(k).push(f);
+    }
+    const ordered = (list) => [...list].sort((a, b) => ((b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)) || String(a.name).localeCompare(String(b.name)));
+    const walk = (pid, depth) => ordered(byParent.get(pid) || [])
+      .filter((f) => f.id !== pid) // self-parent never recurses
+      .map((f) => ({ folder: f, depth, notes: notes.filter((n) => n.folderId === f.id), children: walk(f.id, depth + 1) }));
+    return { notes: notes.filter((n) => !n.folderId), children: walk('', 0) };
+  }
+  function folderTotals(node) {
+    let words = 0, tokens = 0, subs = node.children.length, count = node.notes.length;
+    for (const n of node.notes) { words += n.words || 0; tokens += n.tokens || 0; }
+    for (const c of node.children) {
+      const t = folderTotals(c);
+      words += t.words; tokens += t.tokens; subs += t.subs; count += t.count;
+    }
+    return { words, tokens, subs, count };
+  }
+  function isFolderAncestor(folders, maybeAncestorId, folderId) {
+    let cur = folders.find((f) => f.id === folderId);
+    let hops = 0;
+    while (cur && hops < 12) {
+      if (!cur.parentId) return false;
+      if (cur.parentId === maybeAncestorId) return true;
+      cur = folders.find((f) => f.id === cur.parentId);
+      hops++;
+    }
+    return false;
+  }
+  /* [testable:navPure:end] */
+
+  const navTab = ctx.ui.registerDrawerTab({
+    id: 'tree',
+    title: 'Notehaven File Tree',
+    shortName: 'Tree',
+    description: 'Obsidian-style file tree — folders, subfolders, tags, search, drag & drop',
+    keywords: ['notes', 'tree', 'files', 'folders', 'tags', 'navigator', 'search'],
+    headerTitle: 'File Tree',
+    iconSvg: ICONS.list,
+  });
+  disposers.push(() => navTab.destroy());
+
+  const navRoot = document.createElement('div');
+  navRoot.className = 'nh-root nh-nav';
+  navRoot.innerHTML = `
+    <div class="nh-nav-top">
+      <select class="nh-sel nh-nav-sort" title="Change sort order">
+        <option value="updated-desc">Modified ↓</option>
+        <option value="updated-asc">Modified ↑</option>
+        <option value="created-desc">Created ↓</option>
+        <option value="created-asc">Created ↑</option>
+        <option value="name-asc">Name A→Z</option>
+        <option value="name-desc">Name Z→A</option>
+      </select>
+      <span class="nh-grow"></span>
+      <button class="nh-iconbtn nh-nav-sbtn" title="Toggle search">🔍</button>
+      <button class="nh-iconbtn nh-nav-exp" title="Expand / collapse all folders">⇅</button>
+      <button class="nh-iconbtn nh-nav-ord" title="Reorder sections">↕</button>
+      <button class="nh-iconbtn nh-nav-newf" title="New folder">📁+</button>
+    </div>
+    <div class="nh-nav-searchrow"><input class="nh-nav-q nh-sel" type="text" spellcheck="false" placeholder="words -exclude #tag folder:name · OR splits groups"></div>
+    <div class="nh-nav-body nh-scroll"></div>`;
+  navTab.root.appendChild(navRoot);
+
+  const navBody = navRoot.querySelector('.nh-nav-body');
+  const navQ = navRoot.querySelector('.nh-nav-q');
+  const navSearchRow = navRoot.querySelector('.nh-nav-searchrow');
+  const navSortSel = navRoot.querySelector('.nh-nav-sort');
+  let navBuilt = false;
+
+  const NAV_SECTIONS = { shortcuts: '📌 Shortcuts', recent: '🕘 Recent', tree: '🗂 Notes', tags: '🏷 Tags' };
+  const navOrder = () => {
+    const def = ['shortcuts', 'recent', 'tree', 'tags'];
+    const o = state.settings.ui.navOrder;
+    if (!Array.isArray(o)) return def;
+    return [...o.filter((k) => def.includes(k)), ...def.filter((k) => !o.includes(k))];
+  };
+  const navCollapsed = (key) => (state.settings.ui.collapsed || []).includes(key);
+  function navToggleCollapse(key) {
+    const list = state.settings.ui.collapsed || (state.settings.ui.collapsed = []);
+    const i = list.indexOf(key);
+    if (i >= 0) list.splice(i, 1); else list.push(key);
+    saveSettingsSoon();
+    renderNav();
+  }
+
+  function navNoteRow(meta, depth) {
+    const row = document.createElement('button');
+    row.className = 'nh-nav-row nh-nav-note' + (meta.id === state.currentId ? ' active' : '');
+    row.style.setProperty('--depth', depth);
+    row.draggable = true;
+    row.innerHTML = `<span class="nh-nav-ico">${noteIconHtml(meta, 13) || '<span class="nh-nico-dot" style="background:' + (meta.color || '#b28cff') + ';width:8px;height:8px;border-radius:50%;display:inline-block"></span>'}</span><span class="nh-nav-title">${escapeHtml(meta.title)}</span><span class="nh-nbadge">${meta.words ?? 0}w</span>`;
+    row.title = `${meta.title} — ${meta.words ?? 0} words · ~${meta.tokens ?? 0} tokens · ${meta.newlines ?? 0} ↵ · ${fmtDate(meta.updatedAt)}`;
+    row.addEventListener('click', () => openModal(meta.id));
+    row.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (Date.now() - state.lastLPAt < 900) return;
+      noteContextMenu(e.clientX, e.clientY, meta);
+    });
+    addLongPress(row, (pt) => { state.lastLPAt = Date.now(); noteContextMenu(pt.x, pt.y, meta); });
+    row.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/nh-note', meta.id);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    return row;
+  }
+
+  function navFolderRow(node) {
+    const { folder, depth, children, notes } = node;
+    const frag = document.createDocumentFragment();
+    const key = 'ft:' + folder.id;
+    const collapsed = navCollapsed(key);
+    const totals = folderTotals(node);
+    const row = document.createElement('div');
+    row.className = 'nh-nav-row nh-nav-fold' + (collapsed ? ' collapsed' : '') + (folder.pinned ? ' pinned' : '');
+    row.style.setProperty('--depth', depth);
+    row.draggable = true;
+    row.dataset.folderId = folder.id;
+    row.innerHTML = `<span class="nh-nav-chev">${ICONS.chev}</span>${folderIconHtml(folder)}<span class="nh-nav-title">${escapeHtml(folder.name)}</span>${folder.pinned ? '<span class="nh-fpin">📌</span>' : ''}<span class="nh-nbadge" title="${totals.words} words · ~${totals.tokens} tokens in ${totals.count} note(s)${totals.subs ? ` · ${totals.subs} subfolder(s)` : ''}">${totals.count > 99 ? '99+' : totals.count}</span>`;
+    row.addEventListener('click', () => navToggleCollapse(key));
+    row.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (Date.now() - state.lastLPAt < 900) return;
+      folderContextMenu(e.clientX, e.clientY, folder);
+    });
+    addLongPress(row, (pt) => { state.lastLPAt = Date.now(); folderContextMenu(pt.x, pt.y, folder); });
+    // folder icon = preview popover (mobile + pc)
+    const chip = row.querySelector('.nh-fico');
+    if (chip) {
+      chip.style.cursor = 'zoom-in';
+      chip.addEventListener('click', (e) => { e.stopPropagation(); folderIconPreview(folder, chip); });
+    }
+    // dnd: this row eats notes (file them) AND folders (nest into it)
+    row.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/nh-folder', folder.id);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    row.addEventListener('dragover', (e) => {
+      if (e.dataTransfer.types.includes('text/nh-note') || e.dataTransfer.types.includes('text/nh-folder')) { e.preventDefault(); row.classList.add('nh-drop'); }
+    });
+    row.addEventListener('dragleave', () => row.classList.remove('nh-drop'));
+    row.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      row.classList.remove('nh-drop');
+      const noteId = e.dataTransfer.getData('text/nh-note');
+      if (noteId) { await moveNotes([noteId], folder.id); return; }
+      const foldId = e.dataTransfer.getData('text/nh-folder');
+      if (foldId && foldId !== folder.id) {
+        if (isFolderAncestor(state.index.folders, foldId, folder.id)) { toast('warning', 'A folder cannot live inside its own subfolder'); return; }
+        await setFolderMeta(foldId, { parentId: folder.id });
+      }
+    });
+    frag.appendChild(row);
+    if (!collapsed) {
+      for (const n of sortNotes(notes, state.settings.ui.navSort)) frag.appendChild(navNoteRow(n, depth + 1));
+      for (const c of children) frag.appendChild(navFolderRow(c));
+    }
+    return frag;
+  }
+
+  function navSectionHead(key, count) {
+    const head = document.createElement('div');
+    const collapsed = navCollapsed('nav:' + key);
+    head.className = 'nh-nav-sec' + (collapsed ? ' collapsed' : '');
+    head.innerHTML = `<span class="nh-nav-chev">${ICONS.chev}</span><span>${NAV_SECTIONS[key]}</span><span class="nh-nbadge">${count}</span>`;
+    head.addEventListener('click', () => navToggleCollapse('nav:' + key));
+    return head;
+  }
+
+  function renderNav() {
+    const notes = state.index.notes || [];
+    const folders = state.index.folders || [];
+    const groups = parseNavQuery(navQ.value);
+    const searching = groups.length > 0;
+    navBody.innerHTML = '';
+    navSortSel.value = state.settings.ui.navSort || 'updated-desc';
+    navSearchRow.style.display = state.settings.ui.navSearch ? '' : 'none';
+
+    if (searching) {
+      const matched = sortNotes(notes.filter((n) => navQueryMatch(n, folders, groups)), state.settings.ui.navSort);
+      navBody.appendChild(navSectionHead('tree', matched.length));
+      const lbl = document.createElement('div');
+      lbl.className = 'nh-nav-hint';
+      lbl.textContent = `${matched.length} result(s) for “${navQ.value.trim()}”`;
+      navBody.appendChild(lbl);
+      for (const n of matched) navBody.appendChild(navNoteRow(n, 0));
+      const fHits = folders.filter((f) => groups.some((g) => g.and.length && g.and.every((w) => f.name.toLowerCase().includes(w))));
+      for (const f of fHits) {
+        const row = document.createElement('div');
+        row.className = 'nh-nav-row nh-nav-fold';
+        row.style.setProperty('--depth', 0);
+        row.innerHTML = `<span class="nh-nav-chev"></span>${folderIconHtml(f)}<span class="nh-nav-title">${escapeHtml(f.name)}</span>`;
+        row.addEventListener('click', () => { expandSection(f.id); openModal(); });
+        navBody.appendChild(row);
+      }
+      return;
+    }
+
+    for (const key of navOrder()) {
+      if (key === 'shortcuts') {
+        const pinned = sortNotes(notes.filter((n) => n.pinned), state.settings.ui.navSort);
+        const pinnedFolds = folders.filter((f) => f.pinned);
+        navBody.appendChild(navSectionHead('shortcuts', pinned.length + pinnedFolds.length));
+        if (navCollapsed('nav:shortcuts')) continue;
+        if (!pinned.length && !pinnedFolds.length) {
+          const e = document.createElement('div');
+          e.className = 'nh-nav-hint';
+          e.textContent = 'Pin notes or folders (📌) and they camp here.';
+          navBody.appendChild(e);
+        }
+        for (const f of pinnedFolds) {
+          const row = document.createElement('div');
+          row.className = 'nh-nav-row nh-nav-fold pinned';
+          row.style.setProperty('--depth', 0);
+          row.innerHTML = `<span class="nh-nav-chev"></span>${folderIconHtml(f)}<span class="nh-nav-title">${escapeHtml(f.name)}</span><span class="nh-fpin">📌</span>`;
+          row.addEventListener('click', () => { expandSection(f.id); openModal(); });
+          row.addEventListener('contextmenu', (e) => { e.preventDefault(); folderContextMenu(e.clientX, e.clientY, f); });
+          navBody.appendChild(row);
+        }
+        for (const n of pinned) navBody.appendChild(navNoteRow(n, 0));
+      } else if (key === 'recent') {
+        const recent = sortNotes(notes, 'updated-desc').slice(0, 5);
+        navBody.appendChild(navSectionHead('recent', recent.length));
+        if (navCollapsed('nav:recent')) continue;
+        for (const n of recent) navBody.appendChild(navNoteRow(n, 0));
+      } else if (key === 'tree') {
+        const tree = buildFolderTree(folders, notes);
+        navBody.appendChild(navSectionHead('tree', notes.length));
+        if (navCollapsed('nav:tree')) continue;
+        // root drop slot — drag anything here to unfile/unnest it
+        const rootDrop = document.createElement('div');
+        rootDrop.className = 'nh-nav-rootdrop';
+        rootDrop.textContent = '⤒ drop here = root (unfile / unnest)';
+        rootDrop.addEventListener('dragover', (e) => {
+          if (e.dataTransfer.types.includes('text/nh-note') || e.dataTransfer.types.includes('text/nh-folder')) { e.preventDefault(); rootDrop.classList.add('nh-drop'); }
+        });
+        rootDrop.addEventListener('dragleave', () => rootDrop.classList.remove('nh-drop'));
+        rootDrop.addEventListener('drop', async (e) => {
+          e.preventDefault(); rootDrop.classList.remove('nh-drop');
+          const noteId = e.dataTransfer.getData('text/nh-note');
+          if (noteId) { await moveNotes([noteId], null); return; }
+          const foldId = e.dataTransfer.getData('text/nh-folder');
+          if (foldId) await setFolderMeta(foldId, { parentId: null });
+        });
+        navBody.appendChild(rootDrop);
+        for (const c of tree.children) navBody.appendChild(navFolderRow(c));
+        if (tree.notes.length) {
+          const lbl = document.createElement('div');
+          lbl.className = 'nh-nav-hint';
+          lbl.textContent = '📄 unfiled';
+          navBody.appendChild(lbl);
+          for (const n of sortNotes(tree.notes, state.settings.ui.navSort)) navBody.appendChild(navNoteRow(n, 0));
+        }
+      } else if (key === 'tags') {
+        const counts = new Map();
+        for (const n of notes) for (const t of n.tags || []) counts.set(t, (counts.get(t) || 0) + 1);
+        const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+        navBody.appendChild(navSectionHead('tags', sorted.length));
+        if (navCollapsed('nav:tags')) continue;
+        if (!sorted.length) {
+          const e = document.createElement('div');
+          e.className = 'nh-nav-hint';
+          e.textContent = 'Use #tags inside notes and they appear here.';
+          navBody.appendChild(e);
+        }
+        const wrap = document.createElement('div');
+        wrap.className = 'nh-nav-tagswrap';
+        for (const [tag, n] of sorted.slice(0, 60)) {
+          const chip = document.createElement('button');
+          chip.className = 'nh-tag nh-nav-tag';
+          chip.textContent = `#${tag} (${n})`;
+          chip.addEventListener('click', () => {
+            state.settings.ui.navSearch = true;
+            navQ.value = `#${tag}`;
+            renderNav();
+          });
+          wrap.appendChild(chip);
+        }
+        navBody.appendChild(wrap);
+      }
+    }
+  }
+
+  function renderNavIfActive() { if (navBuilt) renderNav(); }
+
+  navQ.addEventListener('input', () => renderNav());
+  navSortSel.addEventListener('change', () => {
+    state.settings.ui.navSort = navSortSel.value;
+    saveSettingsSoon();
+    renderNav();
+  });
+  navRoot.querySelector('.nh-nav-sbtn').addEventListener('click', () => {
+    state.settings.ui.navSearch = !state.settings.ui.navSearch;
+    saveSettingsSoon();
+    renderNav();
+    if (state.settings.ui.navSearch) setTimeout(() => navQ.focus(), 40);
+  });
+  navRoot.querySelector('.nh-nav-exp').addEventListener('click', () => {
+    const list = state.settings.ui.collapsed || (state.settings.ui.collapsed = []);
+    const anyFoldCollapsed = list.some((k) => k.startsWith('ft:'));
+    if (anyFoldCollapsed) {
+      state.settings.ui.collapsed = list.filter((k) => !k.startsWith('ft:'));
+    } else {
+      for (const f of state.index.folders) if (!list.includes('ft:' + f.id)) list.push('ft:' + f.id);
+    }
+    saveSettingsSoon();
+    renderNav();
+  });
+  navRoot.querySelector('.nh-nav-ord').addEventListener('click', async (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const order = navOrder();
+    const { selectedKey } = await ctx.ui.showContextMenu({
+      position: { x: rect.left, y: rect.bottom + 6 },
+      items: order.map((k, i) => ({ key: k, label: `${i + 1}. ${NAV_SECTIONS[k]}${i > 0 ? ' — tap to move up' : ''}` })),
+    });
+    if (!selectedKey) return;
+    const i = order.indexOf(selectedKey);
+    if (i > 0) {
+      [order[i - 1], order[i]] = [order[i], order[i - 1]];
+      state.settings.ui.navOrder = order;
+      saveSettingsSoon();
+      renderNav();
+    }
+  });
+  navRoot.querySelector('.nh-nav-newf').addEventListener('click', () => createFolderFlow());
+  disposers.push(navTab.onActivate(() => renderNav()));
+  navBuilt = true;
 
   /* ==================================================== */
   /* Halo controls — live inside Notehaven Settings now    */
@@ -2580,7 +3318,7 @@ export function setup(ctx) {
     overlay.style.backdropFilter = u.backdropBlur > 0 ? `blur(${u.backdropBlur}px)` : 'none';
     modalEl.style.opacity = String(u.modalOpacity);
     const light = u.theme === 'light';
-    for (const rootEl of [modalEl, launchRoot, haloRoot, spanelEl]) {
+    for (const rootEl of [modalEl, launchRoot, haloRoot, spanelEl, typeof navRoot !== 'undefined' ? navRoot : null]) {
       if (!rootEl) continue;
       rootEl.classList.toggle('nh-th-light', light);
       rootEl.style.setProperty('--nh-radius', `${u.radius}px`);
@@ -2609,6 +3347,20 @@ export function setup(ctx) {
     if (u.modalH && mh !== u.modalH) state.settings.ui.modalH = mh;
     modalEl.style.width = showSheet && mw ? `${mw}px` : '';
     modalEl.style.height = showSheet && mh ? `${mh}px` : '';
+
+    // remembered drag position — clamped so the header never leaves the screen
+    if (showSheet && !state.fullscreen && u.modalX != null && u.modalY != null) {
+      modalEl.classList.add('nh-anchored');
+      modalEl.style.left = `${Math.min(Math.max(8, u.modalX), Math.max(8, vw - 90))}px`;
+      modalEl.style.top = `${Math.min(Math.max(8, u.modalY), Math.max(8, vh - 46))}px`;
+    } else {
+      modalEl.classList.remove('nh-anchored');
+      modalEl.style.left = '';
+      modalEl.style.top = '';
+    }
+    modalEl.classList.toggle('nh-min', !!u.minimized);
+    wsMinBtn.textContent = u.minimized ? '▢' : '—';
+    wsMinBtn.title = u.minimized ? 'Restore the workspace' : 'Minimize to header';
 
     // custom background picture — a theme-aware "veil" (color-mix of --nh-bg)
     // sits on top so notes stay readable in dark AND light mode
@@ -2725,9 +3477,14 @@ export function setup(ctx) {
   settingsWrap.querySelector('.nh-winsize-reset').addEventListener('click', () => {
     state.settings.ui.modalW = 0;
     state.settings.ui.modalH = 0;
+    state.settings.ui.modalX = null;
+    state.settings.ui.modalY = null;
+    state.settings.ui.minimized = false;
+    state.fullscreen = false;
+    modalEl.classList.remove('nh-full');
     applyUi();
     saveSettingsSoon();
-    toast('info', 'Window size reset');
+    toast('info', 'Window size & position reset — back to center');
   });
 
   uiTheme.addEventListener('change', () => {
@@ -2812,6 +3569,682 @@ export function setup(ctx) {
   disposers.push(() => notesAction.destroy());
   disposers.push(notesAction.onClick(() => openModal()));
 
+
+  /* ==================================================== */
+  /* WORKSPACE 2.0 — tabs · tab groups · splits · window   */
+  /* controls. One live editor surface serves the FOCUSED  */
+  /* group; other panes render a live reading view.        */
+  /* ==================================================== */
+
+  /* [testable:wsOps:start] */
+  // Pure workspace-tree operations (unit-tested: no DOM in here).
+  function wsNewGid() { return 'g' + Math.random().toString(36).slice(2, 9); }
+  function wsFindGroup(node, gid) {
+    if (!node) return null;
+    if (node.type === 'group') return node.gid === gid ? node : null;
+    return wsFindGroup(node.a, gid) || wsFindGroup(node.b, gid);
+  }
+  function wsAllGroups(node, out = []) {
+    if (!node) return out;
+    if (node.type === 'group') out.push(node);
+    else { wsAllGroups(node.a, out); wsAllGroups(node.b, out); }
+    return out;
+  }
+  function wsFirstGroup(node) { return node.type === 'group' ? node : wsFirstGroup(node.a); }
+  // returns a NEW tree with the group spliced out (parent split collapses)
+  function wsRemoveGroup(node, gid) {
+    if (!node || node.type === 'group') return node;
+    if (node.a.type === 'group' && node.a.gid === gid) return node.b;
+    if (node.b.type === 'group' && node.b.gid === gid) return node.a;
+    const na = wsRemoveGroup(node.a, gid), nb = wsRemoveGroup(node.b, gid);
+    return (na !== node.a || nb !== node.b) ? { ...node, a: na, b: nb } : node;
+  }
+  // split a group: original keeps 60%, the brand-new twin pane takes 40%
+  function wsSplit(node, gid, dir, newGid, noteId) {
+    if (node.type === 'group') {
+      if (node.gid !== gid) return node;
+      const twin = { type: 'group', gid: newGid, tabs: noteId ? [{ noteId, pinned: false }] : [], activeId: noteId || null };
+      return { type: 'split', dir, ratio: 0.6, a: node, b: twin };
+    }
+    return { ...node, a: wsSplit(node.a, gid, dir, newGid, noteId), b: wsSplit(node.b, gid, dir, newGid, noteId) };
+  }
+  // drop dead tabs/notes everywhere; returns null when the whole tree died
+  function wsNormalize(node, noteIds) {
+    if (!node || (node.type !== 'split' && node.type !== 'group')) return null;
+    if (node.type === 'group') {
+      node.tabs = (node.tabs || []).filter((t) => noteIds.has(t.noteId));
+      if (node.activeId && !noteIds.has(node.activeId)) node.activeId = null;
+      if (!node.activeId && node.tabs.length) node.activeId = node.tabs[0].noteId;
+      return node;
+    }
+    node.a = wsNormalize(node.a, noteIds);
+    node.b = wsNormalize(node.b, noteIds);
+    if (!node.a) return node.b || null;
+    if (!node.b) return node.a || null;
+    if (typeof node.ratio !== 'number' || node.ratio <= 0.05 || node.ratio >= 0.95) node.ratio = 0.5;
+    return node;
+  }
+  // duplication naming: "name.txt" → "name (1).txt", always max N + 1
+  function nextCopyName(existingTitles, title) {
+    const m = String(title || '').match(/^(.*?)\s*(?:\((\d+)\))?(\.[a-z0-9]{1,5})?$/i);
+    const stem = (m && m[1] ? m[1].trim() : '') || 'note';
+    const ext = (m && m[3]) || '';
+    let max = m && m[2] ? parseInt(m[2], 10) : 0;
+    const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const rx = new RegExp('^' + esc(stem) + '\\s*\\((\\d+)\\)' + esc(ext) + '$', 'i');
+    for (const t of existingTitles) {
+      const r = String(t).match(rx);
+      if (r) max = Math.max(max, parseInt(r[1], 10));
+    }
+    return stem + ' (' + (max + 1) + ')' + ext;
+  }
+  /* [testable:wsOps:end] */
+
+  function wsDefault() {
+    return { layout: { type: 'group', gid: 'g_main', tabs: [], activeId: null }, focusGid: 'g_main' };
+  }
+
+  function wsInit() {
+    const saved = state.settings.editor && state.settings.editor.workspace;
+    state.ws = (saved && saved.layout) ? { layout: saved.layout, focusGid: saved.focusGid || 'g_main' } : wsDefault();
+    const noteIds = new Set(state.index.notes.map((n) => n.id));
+    state.ws.layout = wsNormalize(state.ws.layout, noteIds) || wsDefault().layout;
+    wsPruneDead();
+    if (!wsFindGroup(state.ws.layout, state.ws.focusGid)) state.ws.focusGid = wsFirstGroup(state.ws.layout).gid;
+  }
+
+  function wsPruneDead() {
+    // empty groups fold away unless they're the only one left or focused
+    let groups = wsAllGroups(state.ws.layout);
+    for (const g of groups) {
+      if (groups.length <= 1) break;
+      if (!g.tabs.length && g.gid !== state.ws.focusGid && g.gid !== 'g_main') {
+        state.ws.layout = wsRemoveGroup(state.ws.layout, g.gid);
+      }
+      groups = wsAllGroups(state.ws.layout);
+    }
+  }
+
+  let wsSaveSoon = null;
+  function persistWs() {
+    state.settings.editor.workspace = JSON.parse(JSON.stringify({ layout: state.ws.layout, focusGid: state.ws.focusGid }));
+    if (!wsSaveSoon) wsSaveSoon = debounce(() => saveSettingsSoon(), 350);
+    wsSaveSoon();
+  }
+
+  /* ---------------- history (per tab group) ---------------- */
+  function histPush(gid, noteId) {
+    if (state._histNav) return;
+    const h = state.hist[gid] || (state.hist[gid] = { back: [], fwd: [] });
+    if (h.back[h.back.length - 1] === noteId) return;
+    h.back.push(noteId);
+    if (h.back.length > 60) h.back.shift();
+    h.fwd.length = 0;
+  }
+  function histGo(dir) {
+    if (!state.ws) return;
+    const gid = state.ws.focusGid;
+    const h = state.hist[gid];
+    if (!h) return;
+    if (dir < 0) {
+      if (h.back.length < 2) { syncHistBtns(); return; }
+      h.fwd.push(h.back.pop());
+      const target = h.back[h.back.length - 1];
+      state._histNav = true;
+      openNote(target).finally(() => { state._histNav = false; syncHistBtns(); });
+    } else {
+      if (!h.fwd.length) { syncHistBtns(); return; }
+      const target = h.fwd.pop();
+      h.back.push(target);
+      state._histNav = true;
+      openNote(target).finally(() => { state._histNav = false; syncHistBtns(); });
+    }
+    syncHistBtns();
+  }
+  function syncHistBtns() {
+    const h = state.ws ? state.hist[state.ws.focusGid] : null;
+    wsBackBtn.disabled = !(h && h.back.length > 1);
+    wsFwdBtn.disabled = !(h && h.fwd.length);
+  }
+  wsBackBtn.addEventListener('click', () => histGo(-1));
+  wsFwdBtn.addEventListener('click', () => histGo(1));
+
+  /* ---------------- tabs ---------------- */
+  function wsNoteShown(noteId) {
+    if (!state.ws) return;
+    let g = wsFindGroup(state.ws.layout, state.ws.focusGid) || wsFirstGroup(state.ws.layout);
+    state.ws.focusGid = g.gid;
+    if (!g.tabs.some((t) => t.noteId === noteId)) g.tabs.push({ noteId, pinned: false });
+    g.activeId = noteId;
+    histPush(g.gid, noteId);
+    persistWs();
+    renderTabs();
+  }
+
+  function noteIconHtml(meta, size = 13) {
+    const icon = (meta && meta.icon) || '';
+    const color = (meta && meta.color) || 'var(--nh-muted)';
+    if (icon.startsWith('svg:')) {
+      const key = icon.slice(4);
+      const svg = (typeof NH_ICON_LIB !== 'undefined' && NH_ICON_LIB[key]) || '';
+      if (svg) return `<span class="nh-nico" style="color:${color}">${svg.replace('<svg', `<svg width="${size}" height="${size}"`)}</span>`;
+    }
+    if (icon) return `<span class="nh-nico">${escapeHtml(icon)}</span>`;
+    return '';
+  }
+
+  function renderTabs() {
+    if (!state.ws) return;
+    const g = wsFindGroup(state.ws.layout, state.ws.focusGid) || wsFirstGroup(state.ws.layout);
+    tabsEl.innerHTML = '';
+    for (const tab of g.tabs) {
+      const meta = metaOf(tab.noteId);
+      if (!meta) continue;
+      const el = document.createElement('div');
+      el.className = 'nh-tab' + (tab.noteId === g.activeId ? ' active' : '') + (tab.pinned ? ' pinned' : '');
+      el.draggable = true;
+      el.dataset.noteId = tab.noteId;
+      el.innerHTML = `${noteIconHtml(meta) || '<span class="nh-nico nh-nico-dot" style="background:' + (meta.color || '#b28cff') + '"></span>'}<span class="nh-tab-t">${escapeHtml(meta.title)}</span>${tab.pinned ? '' : '<span class="nh-tab-x">✕</span>'}`;
+      el.title = meta.title;
+      el.addEventListener('click', (e) => {
+        if (e.target.classList.contains('nh-tab-x')) { void closeTab(tab.noteId, g.gid); return; }
+        if (tab.noteId !== state.currentId) void openNote(tab.noteId);
+      });
+      el.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        void tabContextMenu(e.clientX, e.clientY, tab, g);
+      });
+      el.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/nh-tab', JSON.stringify({ noteId: tab.noteId, gid: g.gid }));
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      el.addEventListener('dragover', (e) => {
+        if (e.dataTransfer.types.includes('text/nh-tab')) { e.preventDefault(); el.classList.add('nh-drop'); }
+      });
+      el.addEventListener('dragleave', () => el.classList.remove('nh-drop'));
+      el.addEventListener('drop', (e) => {
+        e.preventDefault(); el.classList.remove('nh-drop');
+        try {
+          const d = JSON.parse(e.dataTransfer.getData('text/nh-tab'));
+          moveTabWithin(d.noteId, g.gid, tab.noteId);
+        } catch (_) { /* noop */ }
+      });
+      tabsEl.appendChild(el);
+    }
+    const plus = document.createElement('button');
+    plus.className = 'nh-tab nh-tab-plus';
+    plus.textContent = '＋';
+    plus.title = 'New tab (new note)';
+    plus.addEventListener('click', async () => {
+      const note = await createNote();
+      if (note) { await openNote(note.id); setTimeout(() => { titleInput.focus(); titleInput.select(); }, 80); }
+    });
+    tabsEl.appendChild(plus);
+    syncHistBtns();
+    // minis in other panes refresh their active label too
+    wsGroupsEl.querySelectorAll('.nh-minitab').forEach((mt) => {
+      const gid = mt.closest('.nh-gframe')?.dataset.gid;
+      const gg = gid ? wsFindGroup(state.ws.layout, gid) : null;
+      if (gg) mt.classList.toggle('active', mt.dataset.noteId === gg.activeId);
+    });
+  }
+
+  function moveTabWithin(noteId, gid, beforeId) {
+    const g = wsFindGroup(state.ws.layout, gid);
+    if (!g) return;
+    const from = g.tabs.findIndex((t) => t.noteId === noteId);
+    if (from < 0) return;
+    const [tab] = g.tabs.splice(from, 1);
+    let to = g.tabs.findIndex((t) => t.noteId === beforeId);
+    if (to < 0) to = g.tabs.length;
+    g.tabs.splice(to, 0, tab);
+    persistWs(); renderTabs();
+  }
+
+  async function closeTab(noteId, gid) {
+    const g = wsFindGroup(state.ws.layout, gid);
+    if (!g) return;
+    const idx = g.tabs.findIndex((t) => t.noteId === noteId);
+    if (idx < 0) return;
+    if (noteId === state.currentId && gid === state.ws.focusGid) saveNoteSoon.flush();
+    g.tabs.splice(idx, 1);
+    if (g.activeId === noteId) g.activeId = (g.tabs[Math.max(0, idx - 1)] || g.tabs[0] || {}).noteId || null;
+    persistWs(); buildWs();
+    if (noteId === state.currentId && gid === state.ws.focusGid && g.activeId) await openNote(g.activeId);
+    else renderTabs();
+  }
+
+  async function tabContextMenu(x, y, tab, group) {
+    const meta = metaOf(tab.noteId);
+    if (!meta) return;
+    const groupCount = wsAllGroups(state.ws.layout).length;
+    const { selectedKey } = await ctx.ui.showContextMenu({
+      position: { x, y },
+      items: [
+        { key: 'pin', label: tab.pinned ? '📌 Unpin tab' : '📌 Pin tab', active: tab.pinned },
+        { key: 'split-r', label: '↔ Split right' },
+        { key: 'split-d', label: '↕ Split down' },
+        ...(groupCount > 1 ? [{ key: 'close-group', label: '✖ Close this pane' }] : []),
+        { key: 'd1', label: '', type: 'divider' },
+        { key: 'close', label: '✕ Close tab' },
+        { key: 'close-others', label: '🧹 Close other tabs' },
+      ],
+    });
+    if (!selectedKey) return;
+    if (selectedKey === 'pin') { tab.pinned = !tab.pinned; persistWs(); renderTabs(); }
+    else if (selectedKey === 'split-r') splitCurrent('row', tab.noteId);
+    else if (selectedKey === 'split-d') splitCurrent('col', tab.noteId);
+    else if (selectedKey === 'close-group') closePane(group.gid);
+    else if (selectedKey === 'close') await closeTab(tab.noteId, group.gid);
+    else if (selectedKey === 'close-others') {
+      group.tabs = group.tabs.filter((t) => t.noteId === tab.noteId || t.pinned);
+      if (!group.tabs.some((t) => t.noteId === group.activeId)) group.activeId = tab.noteId;
+      persistWs(); buildWs(); renderTabs();
+    }
+  }
+
+  /* ---------------- panes / splits ---------------- */
+  function splitCurrent(dir, noteId) {
+    if (!state.ws) return;
+    noteId = noteId || state.currentId;
+    const gid = wsNewGid();
+    state.ws.layout = wsSplit(state.ws.layout, state.ws.focusGid, dir, gid, noteId);
+    state.ws.focusGid = gid;
+    if (noteId) { histPush(gid, noteId); }
+    persistWs(); buildWs();
+    if (noteId) wsNoteShown(noteId);
+    toast('info', dir === 'row' ? 'Split right — panes side by side ↔' : 'Split down — panes stacked ↕');
+  }
+
+  function closePane(gid) {
+    if (!state.ws) return;
+    const groups = wsAllGroups(state.ws.layout);
+    if (groups.length <= 1) return;
+    state.ws.layout = wsRemoveGroup(state.ws.layout, gid);
+    if (state.ws.focusGid === gid) {
+      const first = wsFirstGroup(state.ws.layout);
+      state.ws.focusGid = first.gid;
+      buildWs();
+      if (first.activeId) void openNote(first.activeId);
+    } else buildWs();
+    persistWs();
+  }
+
+  async function focusGroup(gid) {
+    if (!state.ws || gid === state.ws.focusGid) return;
+    saveNoteSoon.flush();
+    state.ws.focusGid = gid;
+    persistWs(); buildWs(); renderTabs();
+    const g = wsFindGroup(state.ws.layout, gid);
+    if (g && g.activeId && g.activeId !== state.currentId) await openNote(g.activeId);
+  }
+
+  const paneCache = new Map(); // noteId+updatedAt -> html
+  function buildGroupFrame(group) {
+    const focused = group.gid === (state.ws && state.ws.focusGid);
+    const fr = document.createElement('div');
+    fr.className = 'nh-gframe' + (focused ? ' focused' : '');
+    fr.dataset.gid = group.gid;
+    if (focused) {
+      fr.appendChild(editorEl);
+      return fr;
+    }
+    // unfocused: mini tab strip + reading pane
+    const strip = document.createElement('div');
+    strip.className = 'nh-minitabs';
+    for (const t of group.tabs) {
+      const meta = metaOf(t.noteId);
+      if (!meta) continue;
+      const b = document.createElement('button');
+      b.className = 'nh-minitab' + (t.noteId === group.activeId ? ' active' : '');
+      b.dataset.noteId = t.noteId;
+      b.innerHTML = `${noteIconHtml(meta, 11)}<span>${escapeHtml(meta.title)}</span>`;
+      b.title = meta.title;
+      b.addEventListener('click', () => {
+        group.activeId = t.noteId;
+        void focusGroup(group.gid);
+      });
+      strip.appendChild(b);
+    }
+    if (!group.tabs.length) strip.innerHTML = '<span class="nh-minitab-empty">empty pane</span>';
+    // accept tabs dropped from other strips
+    strip.addEventListener('dragover', (e) => { if (e.dataTransfer.types.includes('text/nh-tab')) { e.preventDefault(); strip.classList.add('nh-drop'); } });
+    strip.addEventListener('dragleave', () => strip.classList.remove('nh-drop'));
+    strip.addEventListener('drop', (e) => {
+      e.preventDefault(); strip.classList.remove('nh-drop');
+      try {
+        const d = JSON.parse(e.dataTransfer.getData('text/nh-tab'));
+        if (d.gid === group.gid) return;
+        const from = wsFindGroup(state.ws.layout, d.gid);
+        const tab = from && from.tabs.find((t) => t.noteId === d.noteId);
+        if (!tab) return;
+        from.tabs = from.tabs.filter((t) => t.noteId !== d.noteId);
+        if (from.activeId === d.noteId) from.activeId = (from.tabs[0] || {}).noteId || null;
+        group.tabs.push(tab);
+        group.activeId = tab.noteId;
+        persistWs(); buildWs(); renderTabs();
+      } catch (_) { /* noop */ }
+    });
+    const pane = document.createElement('div');
+    pane.className = 'nh-pane nh-scroll';
+    const meta = metaOf(group.activeId);
+    if (meta) {
+      const cacheKey = `${meta.id}@${meta.updatedAt}`;
+      pane.innerHTML = `<div class="nh-pane-title">${noteIconHtml(meta, 14)}<b>${escapeHtml(meta.title)}</b><span class="nh-pane-edit" title="Edit in this pane">✏️</span></div><div class="nh-pane-body">${paneCache.get(cacheKey) || '<span class="nh-pane-loading">rendering…</span>'}</div>`;
+      if (!paneCache.has(cacheKey)) {
+        rpc('get_note', { id: meta.id }).then(({ note }) => {
+          const html = note ? renderMarkdown(note.content, {}) : '';
+          paneCache.set(cacheKey, html);
+          const body = pane.querySelector('.nh-pane-body');
+          if (body && paneCache.size < 40) { body.innerHTML = html; hydratePaneImages(body); }
+        }).catch(() => {});
+      } else {
+        hydratePaneImages(pane.querySelector('.nh-pane-body'));
+      }
+      pane.querySelector('.nh-pane-edit').addEventListener('click', (e) => { e.stopPropagation(); void focusGroup(group.gid); });
+    } else {
+      pane.innerHTML = '<div class="nh-pane-empty">Nothing pinned here.<br>Drop a tab onto this pane, or click a note with the pane focused.</div>';
+    }
+    pane.addEventListener('click', () => void focusGroup(group.gid));
+    fr.append(strip, pane);
+    return fr;
+  }
+
+  async function hydratePaneImages(rootEl) {
+    if (!rootEl) return;
+    const imgs = [...rootEl.querySelectorAll('[data-img-id]')];
+    const missing = [...new Set(imgs.map((c) => c.getAttribute('data-img-id')).filter(Boolean))].filter((id) => !state.imageCache.has(id));
+    await Promise.all(missing.map(async (id) => {
+      try { const { dataUrl } = await rpc('get_image', { imageId: id }, 25000); state.imageCache.set(id, dataUrl || ''); }
+      catch (_) { state.imageCache.set(id, ''); }
+    }));
+    rootEl.querySelectorAll('[data-img-id]').forEach((el) => {
+      const src = state.imageCache.get(el.getAttribute('data-img-id'));
+      if (!src || el.dataset.done) return;
+      el.dataset.done = '1';
+      const kind = mediaKindOf(src);
+      if (el.tagName === 'IMG' && kind === 'image') { el.src = src; el.style.display = ''; }
+    });
+  }
+
+  function buildWs() {
+    if (!state.ws) return;
+    wsGroupsEl.innerHTML = '';
+    wsGroupsEl.appendChild(buildNode(state.ws.layout));
+    renderTabs();
+  }
+
+  function buildNode(node) {
+    if (node.type === 'group') return buildGroupFrame(node);
+    const wrap = document.createElement('div');
+    wrap.className = 'nh-split ' + (node.dir === 'col' ? 'col' : 'row');
+    const wa = document.createElement('div');
+    const wb = document.createElement('div');
+    wa.className = 'nh-splitwrap'; wb.className = 'nh-splitwrap';
+    wa.style.flexGrow = String(node.ratio); wa.style.flexBasis = '0';
+    wb.style.flexGrow = String(1 - node.ratio); wb.style.flexBasis = '0';
+    wa.appendChild(buildNode(node.a));
+    wb.appendChild(buildNode(node.b));
+    const dv = document.createElement('div');
+    dv.className = 'nh-divider' + (node.dir === 'col' ? ' v' : '');
+    dv.title = 'Drag to resize panes';
+    dv.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      try { dv.setPointerCapture(e.pointerId); } catch (_) {}
+      dv.classList.add('active');
+      const rect = wrap.getBoundingClientRect();
+      const onMove = (ev) => {
+        const size = node.dir === 'col' ? rect.height : rect.width;
+        const pos = (node.dir === 'col' ? ev.clientY - rect.top : ev.clientX - rect.left);
+        node.ratio = Math.min(0.85, Math.max(0.15, pos / Math.max(40, size)));
+        wa.style.flexGrow = String(node.ratio);
+        wb.style.flexGrow = String(1 - node.ratio);
+      };
+      const onUp = () => {
+        dv.classList.remove('active');
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        persistWs();
+      };
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+    });
+    wrap.append(wa, dv, wb);
+    return wrap;
+  }
+
+  /* ---------------- window controls: drag · minimize · fullscreen · left grip ---------------- */
+  wsMinBtn.addEventListener('click', () => {
+    state.settings.ui.minimized = !state.settings.ui.minimized;
+    applyUi(); saveSettingsSoon();
+  });
+  wsFullBtn.addEventListener('click', () => {
+    state.fullscreen = !state.fullscreen;
+    modalEl.classList.toggle('nh-full', state.fullscreen);
+    wsFullBtn.classList.toggle('is-active', state.fullscreen);
+    wsFullBtn.textContent = state.fullscreen ? '🗗' : '⛶';
+  });
+
+  let dragPos = null;
+  mheadEl.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || state.fullscreen) return;
+    if (e.target.closest('button, input, select, a, .nh-search')) return;
+    if ((window.innerWidth || 1280) <= 560) return; // phones keep the sheet
+    dragPos = { x: e.clientX, y: e.clientY, rect: modalEl.getBoundingClientRect(), moved: false };
+    const onMove = (ev) => {
+      if (!dragPos) return;
+      const dx = ev.clientX - dragPos.x, dy = ev.clientY - dragPos.y;
+      if (!dragPos.moved && Math.hypot(dx, dy) < 5) return;
+      dragPos.moved = true;
+      mheadEl.classList.add('nh-grabbing');
+      modalEl.classList.add('nh-anchored');
+      const vw = window.innerWidth || 1280, vh = window.innerHeight || 800;
+      const L = Math.min(Math.max(8, dragPos.rect.left + dx), vw - 90);
+      const T = Math.min(Math.max(8, dragPos.rect.top + dy), vh - 46);
+      modalEl.style.left = `${L}px`;
+      modalEl.style.top = `${T}px`;
+      dragPos.L = L; dragPos.T = T;
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      mheadEl.classList.remove('nh-grabbing');
+      if (dragPos && dragPos.moved) {
+        state.settings.ui.modalX = dragPos.L;
+        state.settings.ui.modalY = dragPos.T;
+        saveSettingsSoon();
+      }
+      dragPos = null;
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  });
+
+  mResizeL.addEventListener('pointerdown', (e) => {
+    if ((window.innerWidth || 1280) <= 560) return;
+    e.preventDefault(); e.stopPropagation();
+    const rect = modalEl.getBoundingClientRect();
+    modalEl.classList.add('nh-anchored'); // anchor so the RIGHT edge stays put
+    modalEl.style.left = `${rect.left}px`;
+    modalEl.style.top = `${rect.top}px`;
+    modalEl.style.width = `${rect.width}px`;
+    modalEl.style.height = `${rect.height}px`;
+    try { mResizeL.setPointerCapture(e.pointerId); } catch (_) {}
+    mResizeL.classList.add('active');
+    const sx = e.clientX, sy = e.clientY;
+    const onMove = (ev) => {
+      const vw = window.innerWidth || 1280, vh = window.innerHeight || 800;
+      const newL = Math.min(Math.max(8, rect.left + (ev.clientX - sx)), rect.right - 400);
+      const w = Math.round(Math.min(Math.max(400, rect.right - newL), vw - 16, 2400));
+      const h = Math.round(Math.min(Math.max(320, rect.height + (ev.clientY - sy)), vh - 12, 1600));
+      modalEl.style.left = `${newL}px`;
+      modalEl.style.width = `${w}px`;
+      modalEl.style.height = `${h}px`;
+      state.settings.ui.modalX = newL;
+      state.settings.ui.modalY = Math.max(8, rect.top);
+      state.settings.ui.modalW = w;
+      state.settings.ui.modalH = h;
+    };
+    const onUp = () => {
+      mResizeL.classList.remove('active');
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      saveSettingsSoon();
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  });
+
+  /* ---------------- editor ⋮ menu ---------------- */
+  async function duplicateNoteSequential(meta) {
+    const titles = state.index.notes.map((n) => n.title);
+    const copyTitle = nextCopyName(titles, meta.title);
+    const { note } = await rpc('get_note', { id: meta.id });
+    const res = await rpc('create_note', { title: copyTitle, content: note ? note.content : '', folderId: meta.folderId });
+    state.index = res.index;
+    renderList();
+    if (state.ws) { const g = wsFindGroup(state.ws.layout, state.ws.focusGid); if (g && !g.tabs.some((t) => t.noteId === res.note.id)) g.tabs.push({ noteId: res.note.id, pinned: false }); persistWs(); renderTabs(); }
+    toast('success', `Duplicated as “${copyTitle}”`);
+    return res.note;
+  }
+
+  edMoreBtn.addEventListener('click', async () => {
+    const meta = metaOf(state.currentId);
+    if (!meta) return;
+    const rect = edMoreBtn.getBoundingClientRect();
+    const { selectedKey } = await ctx.ui.showContextMenu({
+      position: { x: Math.max(12, rect.right - 220), y: rect.bottom + 6 },
+      items: [
+        { key: 'm-read', label: '📖 Reading view', active: state.settings.editor.mode === 'read' },
+        { key: 'm-live', label: '✍ Live preview', active: state.settings.editor.mode === 'write' },
+        { key: 'm-source', label: '⌨ Source view', active: state.settings.editor.mode === 'source' },
+        { key: 'd1', label: '', type: 'divider' },
+        { key: 'split-r', label: '↔ Split right' },
+        { key: 'split-d', label: '↕ Split down' },
+        { key: 'rename', label: '✏️ Rename' },
+        { key: 'dup', label: '📑 Duplicate (sequential name)' },
+        { key: 'move', label: '📁 Move note to…' },
+        { key: 'export', label: '⬇ Export (.md)' },
+        { key: 'find', label: '🔍 Find in note…' },
+        { key: 'd2', label: '', type: 'divider' },
+        { key: 'del', label: '🗑 Delete note', danger: true },
+      ],
+    });
+    if (!selectedKey) return;
+    if (selectedKey === 'm-read') applyMode('read');
+    else if (selectedKey === 'm-live') applyMode('write');
+    else if (selectedKey === 'm-source') applyMode('source');
+    else if (selectedKey === 'split-r') splitCurrent('row');
+    else if (selectedKey === 'split-d') splitCurrent('col');
+    else if (selectedKey === 'rename') { titleInput.focus(); titleInput.select(); }
+    else if (selectedKey === 'dup') { try { await duplicateNoteSequential(meta); } catch (e) { toast('error', e.message); } }
+    else if (selectedKey === 'export') exportNoteMarkdown(meta);
+    else if (selectedKey === 'find') openFind(true);
+    else if (selectedKey === 'del') deleteNote(meta.id);
+    else if (selectedKey === 'move') {
+      const sub = await ctx.ui.showContextMenu({
+        position: { x: Math.max(12, rect.right - 220), y: rect.bottom + 6 },
+        items: [
+          { key: 'inbox', label: '📥 Inbox', active: !meta.folderId },
+          ...state.index.folders.map((f) => ({ key: f.id, label: `${f.icon && !f.icon.startsWith('img:') ? f.icon.replace('svg:', '🔧 ') : '📁'} ${f.name}`, active: meta.folderId === f.id })),
+        ],
+      });
+      if (sub.selectedKey) await moveNotes([meta.id], sub.selectedKey === 'inbox' ? null : sub.selectedKey);
+    }
+  });
+
+  /* ---------------- find & replace (operates on the source of truth) ---------------- */
+  const findIn = findbar.querySelector('.nh-find-in');
+  const findCount = findbar.querySelector('.nh-find-count');
+  const replaceIn = findbar.querySelector('.nh-replace-in');
+
+  function findEsc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  function findAll(q) {
+    if (!q || !state.current) return [];
+    const rx = new RegExp(findEsc(q), 'gi');
+    const out = [];
+    let m;
+    const c = state.current.content;
+    while ((m = rx.exec(c))) {
+      out.push([m.index, m.index + m[0].length]);
+      if (m[0].length === 0) rx.lastIndex++;
+      if (out.length > 5000) break;
+    }
+    return out;
+  }
+  function syncFindCount() {
+    state.findMatches = findAll(findIn.value);
+    if (state.findIdx >= state.findMatches.length) state.findIdx = state.findMatches.length - 1;
+    findCount.textContent = state.findMatches.length
+      ? `${state.findIdx + 1}/${state.findMatches.length}`
+      : (findIn.value ? '0 matches' : '');
+  }
+  function openFind(focusIt) {
+    findbar.classList.add('on');
+    if (focusIt) { findIn.focus(); findIn.select(); }
+  }
+  function closeFind() { findbar.classList.remove('on'); }
+  function jumpToMatch() {
+    const m = state.findMatches[state.findIdx];
+    if (!m) return;
+    if (state.settings.editor.mode !== 'source') applyMode('source'); // selection lives in the textarea
+    sourceEl.value = state.current.content;
+    sourceEl.focus();
+    sourceEl.setSelectionRange(m[0], m[1]);
+    // approximate scroll so the match is in view
+    const lines = state.current.content.slice(0, m[0]).split('\n').length;
+    sourceEl.scrollTop = Math.max(0, lines - 4) * 19;
+  }
+  function stepMatch(dir) {
+    syncFindCount();
+    if (!state.findMatches.length) return;
+    state.findIdx = (state.findIdx + dir + state.findMatches.length) % state.findMatches.length;
+    syncFindCount();
+    jumpToMatch();
+  }
+  function applyContentSynced(content) {
+    if (!state.current) return;
+    state.current.content = content;
+    sourceEl.value = content;
+    renderStatus();
+    saveNoteSoon();
+    if (state.settings.editor.mode !== 'source') renderPreview();
+  }
+  findbar.querySelector('.nh-find-next').addEventListener('click', () => stepMatch(1));
+  findbar.querySelector('.nh-find-prev').addEventListener('click', () => stepMatch(-1));
+  findbar.querySelector('.nh-find-close').addEventListener('click', closeFind);
+  findbar.querySelector('.nh-replace-one').addEventListener('click', () => {
+    syncFindCount();
+    const m = state.findMatches[state.findIdx];
+    if (!m || !state.current) return;
+    const c = state.current.content;
+    applyContentSynced(c.slice(0, m[0]) + replaceIn.value + c.slice(m[1]));
+    syncFindCount();
+    jumpToMatch();
+  });
+  findbar.querySelector('.nh-replace-all').addEventListener('click', () => {
+    const q = findIn.value;
+    if (!q || !state.current) return;
+    const n = findAll(q).length;
+    applyContentSynced(state.current.content.replace(new RegExp(findEsc(q), 'gi'), replaceIn.value));
+    syncFindCount();
+    toast('success', `Replaced ${n} occurrence(s)`);
+  });
+  findIn.addEventListener('input', () => { state.findIdx = 0; syncFindCount(); });
+  findIn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); stepMatch(e.shiftKey ? -1 : 1); }
+    else if (e.key === 'Escape') { e.stopPropagation(); closeFind(); }
+  });
+  replaceIn.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); closeFind(); } });
+  modalEl.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+      if (e.target === findIn || e.target === replaceIn) return;
+      if (e.target === searchInput) return; // don't steal from the note search
+      e.preventDefault();
+      openFind(true);
+    }
+  });
+
   /* ==================================================== */
   /* Boot                                                  */
   /* ==================================================== */
@@ -2825,7 +4258,7 @@ export function setup(ctx) {
       ]);
       state.settings = settings;
       // forward-compatible defaults for older saves (theme & collapsed arrive with 1.6)
-      state.settings.ui = { theme: 'auto', collapsed: [], bgImageId: '', bgDim: 0.85, ...state.settings.ui };
+      state.settings.ui = { theme: 'auto', collapsed: [], bgImageId: '', bgDim: 0.85, navSort: 'updated-desc', navOrder: ['shortcuts', 'recent', 'tree', 'tags'], navSearch: false, ...state.settings.ui };
       if (!Array.isArray(state.settings.ui.collapsed)) state.settings.ui.collapsed = [];
       state.index = index;
       if (dataUrl) state.logoSrc = dataUrl;
@@ -2836,7 +4269,8 @@ export function setup(ctx) {
         } catch (_) { state.bgSrc = null; }
       }
 
-      if (!['write', 'read'].includes(state.settings.editor.mode)) state.settings.editor.mode = 'write';
+      if (!['write', 'read', 'source'].includes(state.settings.editor.mode)) state.settings.editor.mode = 'write';
+      wsInit(); // rebuild tabs/groups/splits from the saved layout
       canvas.classList.add(`nh-mode-${state.settings.editor.mode}`);
       modeBtns.forEach((b) => b.classList.toggle('is-active', b.dataset.mode === state.settings.editor.mode));
       preview.setAttribute('contenteditable', state.settings.editor.mode === 'write' ? 'true' : 'false');
@@ -2849,15 +4283,20 @@ export function setup(ctx) {
       refreshDrawerRecent();
 
       const first = [...index.notes].sort((a, b) => (b.pinned - a.pinned))[0] || index.notes[0];
-      if (first) {
-        // preload the first note so the modal opens instantly
-        const { note } = await rpc('get_note', { id: first.id });
+      const lastActive = state.ws && wsFindGroup(state.ws.layout, state.ws.focusGid)?.activeId;
+      const resume = lastActive && metaOf(lastActive) ? metaOf(lastActive) : first;
+      if (resume) {
+        // preload the resume note so the modal opens instantly
+        const { note } = await rpc('get_note', { id: resume.id });
         if (note) {
-          state.currentId = first.id;
+          state.currentId = resume.id;
           state.current = { id: note.id, title: note.title, content: note.content };
           titleInput.value = note.title;
           renderList(); refreshPinBtn(); renderStatus(); renderPreview();
         }
+        wsNoteShown(resume.id);
+        buildWs(); // seat the editor into the focused pane, panes render their own views
+        applyUi(); // positions/minimize apply AFTER structure exists
       }
       state.booted = true;
       syncHaloTab();

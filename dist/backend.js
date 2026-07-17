@@ -47,6 +47,13 @@ const UI_DEFAULTS = () => ({
   modalH: 0,           // 0 → auto; otherwise px
   bgImageId: '',       // custom background picture (an imageId); '' → none
   bgDim: 0.85,         // veil opacity over the background so text stays readable
+  // File Tree Navigator
+  navSort: 'updated-desc', // name-asc|name-desc|updated-desc|updated-asc|created-desc|created-asc
+  navOrder: ['shortcuts', 'recent', 'tree', 'tags'], // reorderable sections
+  navSearch: false,        // navigator search bar visible?
+  // Workspace window
+  modalX: null, modalY: null, // remembered drag position (null → centered)
+  minimized: false,           // shrink to just the header bar
 });
 
 const DEFAULT_SETTINGS = () => ({
@@ -118,6 +125,15 @@ async function readIndex(userId) {
   });
   if (!idx || !Array.isArray(idx.notes)) return { notes: [], folders: [] };
   if (!Array.isArray(idx.folders)) idx.folders = [];
+  for (const f of idx.folders) {
+    if (typeof f.pinned !== 'boolean') f.pinned = false;
+    if (f.parentId === undefined) f.parentId = null; // subfolder support (2.0)
+  }
+  for (const n of idx.notes) {
+    if (n.icon === undefined) n.icon = '';           // note icon (2.0)
+    if (typeof n.tokens !== 'number') n.tokens = Math.ceil((n.snippet ? n.words * 5 : 0) / 4) || 0; // rough backfill; real value on next save
+    if (typeof n.newlines !== 'number') n.newlines = 0;
+  }
   return idx;
 }
 
@@ -218,6 +234,28 @@ async function seedWelcomeNote(userId) {
 /* Request handlers                                                    */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Validates a folder parentId. Returns null (root), the id, or false when the
+ * link would create a cycle. Depth is capped at 6 levels — plenty for a notes app.
+ */
+function validParentId(folders, parentId, selfId) {
+  if (parentId === null || parentId === undefined || parentId === '') return null;
+  const target = folders.find((f) => f.id === parentId);
+  if (!target) return null;
+  // walk up the ancestor chain; meeting selfId means cycle
+  let cur = target; let depth = 1;
+  const seen = new Set();
+  while (cur) {
+    if (selfId && cur.id === selfId) return false;
+    if (seen.has(cur.id)) break;
+    seen.add(cur.id);
+    if (depth > 6) return null; // too deep → drop to root instead of exploding
+    cur = folders.find((f) => f.id === cur.parentId) || null;
+    depth++;
+  }
+  return target.id;
+}
+
 const handlers = {
   /* ---------------- notes ---------------- */
 
@@ -257,6 +295,9 @@ const handlers = {
       tags: extractTags(note.content),
       snippet: makeSnippet(note.content),
       words: wordCount(note.content),
+      tokens: Math.ceil(note.content.length / 4), // ≈chars/4 until the host tokenizer exists
+      newlines: (note.content.match(/\n/g) || []).length,
+      icon: '',
       imageIds: [],
       createdAt: now,
       updatedAt: now,
@@ -295,6 +336,8 @@ const handlers = {
     meta.tags = extractTags(content);
     meta.snippet = makeSnippet(content);
     meta.words = wordCount(content);
+    meta.tokens = Math.ceil(content.length / 4);
+    meta.newlines = (content.match(/\n/g) || []).length;
     meta.imageIds = keepIds;
     meta.updatedAt = now;
     await writeIndex(index, userId);
@@ -321,6 +364,14 @@ const handlers = {
     if (!meta) throw new Error(`Note not found: ${p.id}`);
     if (typeof p.pinned === 'boolean') meta.pinned = p.pinned;
     if (typeof p.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(p.color)) meta.color = p.color;
+    if (typeof p.icon === 'string') {
+      const icon = p.icon.slice(0, 80);
+      const old2 = meta.icon || '';
+      if (old2.startsWith('img:') && old2 !== icon) {
+        try { await spindle.userStorage.delete(imagePath(old2.slice(4)), userId); } catch (_) { /* gone */ }
+      }
+      meta.icon = icon;
+    }
     await writeIndex(index, userId);
     return { meta, index };
   },
@@ -453,7 +504,9 @@ const handlers = {
       id: newId('fold'),
       name: (p.name || '').trim().slice(0, 60) || 'New folder',
       color: NOTE_COLORS[index.folders.length % NOTE_COLORS.length],
-      icon: '', // '' | emoji | 'img:<imageId>'
+      icon: '', // '' | emoji | 'svg:<key>' | 'img:<imageId>'
+      pinned: false,
+      parentId: validParentId(index.folders, p.parentId, null), // subfolders!
       createdAt: now,
       updatedAt: now,
     };
@@ -478,6 +531,12 @@ const handlers = {
     if (!folder) throw new Error(`Folder not found: ${p.id}`);
 
     if (typeof p.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(p.color)) folder.color = p.color;
+    if (typeof p.pinned === 'boolean') folder.pinned = p.pinned;
+    if (p.parentId !== undefined) {
+      const parent = validParentId(index.folders, p.parentId, folder.id);
+      if (parent === false) throw new Error('A folder cannot live inside itself or its own subfolders');
+      folder.parentId = parent;
+    }
     if (typeof p.icon === 'string') {
       const icon = p.icon.slice(0, 80);
       // garbage-collect a replaced icon image
@@ -497,6 +556,8 @@ const handlers = {
     const folder = index.folders.find((f) => f.id === p.id);
     if (!folder) throw new Error(`Folder not found: ${p.id}`);
     index.folders = index.folders.filter((f) => f.id !== p.id);
+    // orphaned subfolders move up to the deleted folder's parent (never vanish!)
+    for (const f of index.folders) if (f.parentId === p.id) f.parentId = folder.parentId || null;
 
     // folder icon image
     if ((folder.icon || '').startsWith('img:')) {
@@ -599,6 +660,7 @@ const handlers = {
 
     // --- folders first so notes can point at the (possibly re-ided) folders
     const folderIdMap = {};
+    const pendingParents = {}; // new folder id → raw parentId (resolved in pass 2)
     const existingFolderIds = new Set(index.folders.map((f) => f.id));
     const foldersIn = Array.isArray(data.folders) ? data.folders : [];
     for (const rawF of foldersIn) {
@@ -622,7 +684,19 @@ const handlers = {
       });
       existingFolderIds.add(nid);
       if (rawF.id) folderIdMap[String(rawF.id)] = nid;
+      pendingParents[nid] = typeof rawF.parentId === 'string' ? rawF.parentId : null;
       foldersImported++;
+    }
+
+    // pass 2: restore subfolder links, remapped through folderIdMap
+    for (const [nid, rawParent] of Object.entries(pendingParents)) {
+      if (!rawParent) continue;
+      const resolved = folderIdMap[rawParent] || (existingFolderIds.has(rawParent) ? rawParent : null);
+      if (!resolved) continue;
+      const f = index.folders.find((x) => x.id === nid);
+      if (!f) continue;
+      const ok = validParentId(index.folders, resolved, f.id);
+      f.parentId = ok === false ? null : ok; // cycles import as roots, not crashes
     }
 
     for (const raw of notesIn) {

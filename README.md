@@ -7,6 +7,12 @@ A cozy **Lumiverse** (by [Prolix](https://github.com/prolix-oc/Lumiverse)) exten
 
 No build step required — `dist/` is hand-written, dependency-free ES2022 and installs as-is.
 
+- 🗂 **File Tree Navigator (2.0)** — a second drawer tab with an Obsidian-style tree: nested subfolders, 📌 Shortcuts + 🕘 Recent + 🏷 Tags sections (collapsible & reorderable), 6 sort modes, smart search (`words -exclude #tag folder:name OR…`), drag & drop, and word/token badges that roll up through subfolders.
+- 🗄 **Tabs & split panes (2.0)** — browser-style tabs (drag to reorder, right-click to pin/split), **Split right / Split down** with draggable dividers, up to 5+ nested panes. Unfocused panes keep a live reading view of their note.
+- 🪟 **A real workspace window (2.0)** — drag it anywhere (position is remembered), minimize-to-header, fullscreen, resize from both corners and both edges, back/forward history, Find & Replace (Ctrl+F), and three view modes: ✍ Live · 📖 Reading · ⌨ Source.
+- 📌 **Real pinning (2.0)** — pinned notes own the *top* of the list in their own section; folders pin too. Notes & folders take icons from an svg library, emojis, or uploaded pictures (tap a folder icon for a preview popover — works on PC & mobile). Duplication names sequentially: `name.txt` → `name (1).txt`.
+
+
 ---
 
 ## Installation
