@@ -58,7 +58,8 @@ All Halo controls live **inside Notehaven → ⚙ Settings** now — no separate
 
 - **Folders / categories** — no side bars, no tabs: folders live right inside the **All** list as section headers with their notes grouped neatly beneath. Tap a folder row (chevron included) to **collapse it like a dropdown** ▾ — your collapsed choices are remembered across sessions. Create folders with **＋ New folder** at the bottom, rename inline, and right-click (long-press) a folder for more: emoji or **custom image icons**, delete (keep notes → Inbox, or delete everything)
 - **Dark & light themes** — the ☀️/🌙 button in the notes header flips instantly; Settings → **Theme** offers Auto (follow Lumiverse) / Dark / Light
-- **Pin = superpower** — 📌 pins sort to the list top as before, but now each 📌 menu (note header button or right-click) also offers **🪟 Pin on screen**: the note floats as a mini window over your chat — type in it while you chat, autosaves, works on PC *and* phone. True multitasking ✨
+- **One-click pins** — 📌 the pin button toggles instantly (no menus): pinned notes sort to the top of the list, and errors surface as toasts instead of failing silently
+- **Custom background** — set any picture behind your notes from Settings → Appearance, with a "veil" slider that keeps text readable in dark *and* light mode 🖼
 - **Move notes** — drag them onto a folder's section header (PC), right-click → *📁 Move to…*, or create notes directly inside a folder; new notes land in the folder you're browsing
 - **Multi-select** — tap ☑ in the list header: check individual notes or **All**, then **Move** or **Delete** in bulk
 - **Resizable UI** — drag the rail's right edge on PC (slider in Settings too), drag the window's bottom-right corner to resize the whole sheet (phones stay comfy full-screen)
