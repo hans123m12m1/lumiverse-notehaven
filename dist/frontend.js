@@ -7,7 +7,7 @@
  *    watch it float over your chat (drag it anywhere, right-click for more).
  *
  * Rendering happens directly in host-provided placement roots
- * (ctx.ui.registerDrawerTab / ctx.ui.createFloatWidget) plus one free-tier
+ * (ctx.ui.registerDrawerTab / input-bar actions) plus one free-tier
  * ctx.dom.inject() wrapper for the modal overlay.
  */
 
@@ -361,7 +361,6 @@ const NH_CSS = `
   .nh-switch input:checked + .nh-track { background: var(--nh-accent); }
   .nh-switch input:checked + .nh-track::after { transform: translateX(18px); }
   .nh-posread { color: var(--nh-muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
-  .nh-permwarn { border: 1px solid color-mix(in srgb, var(--nh-amber) 45%, transparent); background: color-mix(in srgb, var(--nh-amber) 10%, transparent); border-radius: var(--nh-radius); padding: 12px 14px; font-size: 12.5px; display: flex; flex-direction: column; gap: 8px; }
 
   /* ---------- floating halo widget ---------- */
   .nh-halo { width: var(--halo-size, 64px); height: var(--halo-size, 64px); border-radius: 28%; position: relative; cursor: grab; user-select: none; }
@@ -369,6 +368,9 @@ const NH_CSS = `
   .nh-halo img { width: 100%; height: 100%; object-fit: contain; border-radius: inherit; filter: drop-shadow(0 4px 14px rgba(0,0,0,.45)); user-select: none; -webkit-user-drag: none; pointer-events: none; }
   .nh-halo::after { content: ''; position: absolute; inset: -14%; background: radial-gradient(circle, color-mix(in srgb, var(--lumiverse-accent, #b28cff) 28%, transparent) 0%, transparent 70%); z-index: -1; opacity: 0; transition: opacity .25s; border-radius: 50%; }
   .nh-halo:hover::after { opacity: 1; }
+  /* floating chat logo — fully self-rendered: no host widget, no permission */
+  .nh-halo-float { position: fixed; z-index: 1200; touch-action: none; }
+  .nh-halo-float.nh-settle { transition: left .22s ease-out, top .22s ease-out; }
 
   /* ---------- image lightbox ---------- */
   .nh-lightbox { position: fixed; inset: 0; z-index: 9999; background: rgba(8,7,14,.82); display: flex; align-items: center; justify-content: center; cursor: zoom-out; backdrop-filter: blur(4px); }
@@ -895,12 +897,30 @@ export function setup(ctx) {
 
   /* ---------------- shared state ---------------- */
 
+  const NH_EDITOR_DEFAULTS = {
+    mode: 'write', defaultView: 'write', newTabOnCreate: true, showMode: true,
+    readableLength: false, strictBreaks: false, foldHeading: false, foldIndent: false,
+    lineNumbers: false, guidesEditor: false, rtl: false, lineHeight: 1.65,
+    spellcheck: true, spellLang: 'en', autoPair: false, smartLists: false,
+    indentTabs: false, indentWidth: 4, confirmDelete: true, trashMode: 'permanent',
+  };
+  const NH_UI_DEFAULTS = {
+    customCSS: '', accent: '', modalOpacity: 1, backdropDim: 0.6, backdropBlur: 3,
+    fontSize: 13.5, radius: 14, theme: 'auto', collapsed: [],
+    navExpandSelect: true, navOneBranch: false, navCollapseScope: 'folders', navKeepSelected: false,
+    navSpring: false, navColorIconsOnly: true, navShowShortcuts: true, navShortcutIcons: true,
+    navShowRecent: true, navRecentCount: 5, navShowFolderIcons: true, navGuides: true,
+    navShowTags: true, navTagIcons: true, navTagsFolder: false, navUntagged: false,
+    navCounters: { wf: true, wF: true, cf: false, cF: false, tf: false, tF: false, nf: false },
+    ifaceIcons: { folder: '', note: '', tag: '' },
+  };
+
   const state = {
     index: { notes: [] },
     settings: {
       logo: { size: 64, visible: true, snapToEdge: true, x: null, y: null },
-      editor: { mode: 'write' },
-      ui: { customCSS: '', accent: '', modalOpacity: 1, backdropDim: 0.6, backdropBlur: 3, fontSize: 13.5, radius: 14, theme: 'auto', collapsed: [] },
+      editor: { ...NH_EDITOR_DEFAULTS },
+      ui: { ...NH_UI_DEFAULTS },
     },
     currentId: null,
     current: null,         // { id, title, content }
@@ -923,7 +943,11 @@ export function setup(ctx) {
     fullscreen: false,
   };
 
-  const metaOf = (id) => state.index.notes.find((n) => n.id === id);
+  /* 2.1.3 — defaults as CONSTANTS, applied both at setup time (synchronous
+     settings-card render reads them!) and at boot merge for older saves.
+     v2.1.0..2.1.2 shipped a fatal race: cards rendered before boot backfilled
+     lineHeight -> TypeError killed setup -> no modal, no tabs, no Halo. */
+    const metaOf = (id) => state.index.notes.find((n) => n.id === id);
 
   const saveSettingsSoon = debounce(() => {
     rpc('save_settings', { settings: state.settings }).catch(() => {});
@@ -3129,11 +3153,6 @@ export function setup(ctx) {
   const haloRoot = document.createElement('div');
   haloRoot.className = 'nh-root nh-halo-root';
   haloRoot.innerHTML = `
-    <div class="nh-permwarn nh-permwarn-el" style="display:none">
-      <strong>✨ One more step…</strong>
-      <span>The floating logo needs the <b>ui_panels</b> permission. Grant it to Notehaven in the Extensions panel, then come back here.</span>
-      <button class="nh-btn primary nh-open-ext" style="align-self:flex-start">Open Extensions settings</button>
-    </div>
     <div class="nh-card">
       <h3>Halo — your floating logo ✨</h3>
       <div class="nh-sub">It lives right here now — click it in chat to open your notes, drag it anywhere, Ctrl+scroll to resize. Animated GIFs welcome!</div>
@@ -3179,26 +3198,20 @@ export function setup(ctx) {
   const visibleSwitch = haloRoot.querySelector('.nh-visible');
   const snapSwitch = haloRoot.querySelector('.nh-snap');
   const posRead = haloRoot.querySelector('.nh-posread');
-  const permWarn = haloRoot.querySelector('.nh-permwarn-el');
 
-  haloRoot.querySelector('.nh-open-ext').addEventListener('click', () => {
-    ctx.events.emit('open-settings', { view: 'extensions' });
-  });
 
   /* ==================================================== */
   /* Halo widget — the floating logo                       */
   /* ==================================================== */
 
-  let haloWidget = null;
+  let haloBubbleEl = null;   // the floating logo — fully ours, no host widget
   let haloImgEl = null;
-  let unsubDragEnd = null;
-  let haloPermissionMissing = false;
 
   function haloDefaultPos() {
     const size = state.settings.logo.size;
     return {
       x: Math.max(16, (window.innerWidth || 1280) - size - 40),
-      y: Math.max(16, (window.innerHeight || 800) - size - 48),
+      y: Math.max(16, (window.innerHeight || 800) - size - 96),
     };
   }
 
@@ -3220,74 +3233,46 @@ export function setup(ctx) {
     haloPreviewImg.src = state.logoSrc;
     const p = haloPos();
     posRead.textContent = `x: ${Math.round(p.x)}, y: ${Math.round(p.y)}`;
-    permWarn.style.display = haloPermissionMissing ? '' : 'none';
   }
 
   function destroyHalo() {
-    if (unsubDragEnd) { unsubDragEnd(); unsubDragEnd = null; }
-    if (haloWidget) { haloWidget.destroy(); haloWidget = null; haloImgEl = null; }
+    if (haloBubbleEl) { haloBubbleEl.remove(); haloBubbleEl = null; }
+    haloImgEl = null;
   }
 
-  function createHalo() {
-    destroyHalo();
+  function buildHaloEl() {
     const { logo } = state.settings;
-    const pos = haloPos();
-    try {
-      haloWidget = ctx.ui.createFloatWidget({
-        width: logo.size,
-        height: logo.size,
-        initialPosition: pos,
-        snapToEdge: logo.snapToEdge,
-        tooltip: 'Notehaven Halo — click to open · drag to move · Ctrl+scroll resizes · right-click for menu',
-        chromeless: true,
-      });
-      haloPermissionMissing = false;
-    } catch (err) {
-      haloPermissionMissing = true;
-      haloWidget = null;
-      syncHaloTab();
-      return;
-    }
-
     const el = document.createElement('div');
-    el.className = 'nh-halo';
+    el.className = 'nh-halo nh-halo-float';
     el.style.setProperty('--halo-size', `${logo.size}px`);
     const img = document.createElement('img');
     img.src = state.logoSrc;
     img.alt = 'Halo';
     img.draggable = false;
     el.appendChild(img);
-    haloWidget.root.appendChild(el);
     haloImgEl = img;
+    return el;
+  }
 
-    haloWidget.setVisible(logo.visible);
-    unsubDragEnd = haloWidget.onDragEnd((p) => {
-      state.settings.logo.x = p.x;
-      state.settings.logo.y = p.y;
-      posRead.textContent = `x: ${Math.round(p.x)}, y: ${Math.round(p.y)}`;
-      saveSettingsSoon();
+  // --- open-note triggers: several paths, all funneled into one deduped
+  // open, because browsers may retarget pointer events around drags
+  const openFromHalo = () => {
+    if (Date.now() - (state.haloResizeAt || 0) < 500) return; // just finished resizing/dragging
+    if (Date.now() - state.lastLPAt < 600) return; // long-press menu owns this gesture
+    const now = Date.now();
+    if (now - (state.lastHaloOpenAt || 0) < 450) return; // dedupe tap+click double-fire
+    state.lastHaloOpenAt = now;
+    openModal();
+  };
+
+  function wireHaloTriggers(el) {
+    addTapListener(el, openFromHalo); // classic small-move tap
+    let pdown = null;
+    el.addEventListener('pointerdown', (e) => { pdown = { x: e.clientX, y: e.clientY }; }, { passive: true });
+    el.addEventListener('click', (e) => { // safety net: fires even if pointerup got retargeted
+      if (pdown && Math.hypot(e.clientX - pdown.x, e.clientY - pdown.y) >= 8) return; // that was a drag
+      openFromHalo();
     });
-
-    // --- open-note triggers: several paths, all funneled into one deduped
-    // open, because host drag handlers MAY capture/retarget pointer events
-    // (that is what silently eats clicks on some setups)
-    const openFromHalo = () => {
-      if (Date.now() - (state.haloResizeAt || 0) < 500) return; // just finished resizing
-      if (Date.now() - state.lastLPAt < 600) return; // long-press menu owns this gesture
-      const now = Date.now();
-      if (now - (state.lastHaloOpenAt || 0) < 450) return; // dedupe tap+click double-fire
-      state.lastHaloOpenAt = now;
-      openModal();
-    };
-    for (const t of [...new Set([el, haloWidget?.root].filter(Boolean))]) {
-      addTapListener(t, openFromHalo); // classic small-move tap
-      let pdown = null;
-      t.addEventListener('pointerdown', (e) => { pdown = { x: e.clientX, y: e.clientY }; }, { passive: true });
-      t.addEventListener('click', (e) => { // fallback: fires even if pointerup got retargeted
-        if (pdown && Math.hypot(e.clientX - pdown.x, e.clientY - pdown.y) >= 8) return; // that was a drag
-        openFromHalo();
-      });
-    }
 
     // --- PC resize: Ctrl+scroll right on the logo (plus slider & presets in Settings)
     el.addEventListener('wheel', (e) => {
@@ -3306,6 +3291,114 @@ export function setup(ctx) {
       if (Date.now() - state.lastLPAt < 900) return; // already opened by long-press
       haloContextMenu(e.clientX, e.clientY);
     });
+  }
+
+  const nhClamp = (v, lo, hi) => Math.min(Math.max(v, lo), Math.max(lo, hi));
+
+  function placeHaloBubble(px, py) {
+    if (!haloBubbleEl) return;
+    const size = state.settings.logo.size;
+    const d = haloDefaultPos();
+    const x = nhClamp(Number.isFinite(px) ? px : d.x, 4, (window.innerWidth || 320) - size - 4);
+    const y = nhClamp(Number.isFinite(py) ? py : d.y, 4, (window.innerHeight || 480) - size - 4);
+    haloBubbleEl.style.left = `${Math.round(x)}px`;
+    haloBubbleEl.style.top = `${Math.round(y)}px`;
+  }
+
+  // pointer-drag + snap-to-edge + persist — works with mouse AND touch
+  function wireHaloDrag(el) {
+    let drag = null;
+    el.addEventListener('pointerdown', (e) => {
+      drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: parseFloat(el.style.left) || 0, oy: parseFloat(el.style.top) || 0, moved: false };
+      try { el.setPointerCapture(e.pointerId); } catch { /* older engines */ }
+    }, { passive: true });
+    el.addEventListener('pointermove', (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.sx;
+      const dy = e.clientY - drag.sy;
+      if (!drag.moved && Math.hypot(dx, dy) < 6) return; // still a tap
+      drag.moved = true;
+      state.haloResizeAt = Date.now(); // suppress the tap that ends a drag
+      const size = state.settings.logo.size;
+      drag.nx = nhClamp(drag.ox + dx, 4, (window.innerWidth || 320) - size - 4);
+      drag.ny = nhClamp(drag.oy + dy, 4, (window.innerHeight || 480) - size - 4);
+      el.style.left = `${Math.round(drag.nx)}px`;
+      el.style.top = `${Math.round(drag.ny)}px`;
+    }, { passive: true });
+    const finish = (e) => {
+      if (!drag) return;
+      if (e && e.pointerId !== undefined && e.pointerId !== drag.id) return;
+      if (drag.moved) {
+        let nx = drag.nx;
+        const ny = drag.ny;
+        if (state.settings.logo.snapToEdge) {
+          const size = state.settings.logo.size;
+          nx = (nx + size / 2 < (window.innerWidth || 320) / 2)
+            ? 12
+            : Math.max(12, (window.innerWidth || 320) - size - 12);
+          el.classList.add('nh-settle');
+          requestAnimationFrame(() => {
+            el.style.left = `${Math.round(nx)}px`;
+            setTimeout(() => el.classList.remove('nh-settle'), 260);
+          });
+        }
+        state.settings.logo.x = nx;
+        state.settings.logo.y = ny;
+        posRead.textContent = `x: ${Math.round(nx)}, y: ${Math.round(ny)}`;
+        saveSettingsSoon();
+      }
+      drag = null;
+    };
+    el.addEventListener('pointerup', finish);
+    el.addEventListener('pointercancel', finish);
+  }
+
+  /* v2.1.2 — the Halo is 100% Notehaven-rendered. The host float-widget
+     API is gone from the picture: on hosts where the widget permission was ungranted
+     (or widgets unsupported, e.g. phones) the widget was swallowed
+     SILENTLY — users saw no logo at all. One direct <div> in body with
+     our own drag/snap/tap logic works everywhere, guaranteed. */
+
+  function createHalo() {
+    destroyHalo();
+    const { logo } = state.settings;
+    const pos = haloPos();
+    let el = null;
+    try {
+      el = buildHaloEl();
+      (document.body || document.documentElement).appendChild(el);
+    } catch (err) {
+      // absolute last resort: retry once on the next frame
+      setTimeout(() => { try { if (!haloBubbleEl) createHalo(); } catch (_) {} }, 400);
+      return;
+    }
+    haloBubbleEl = el;
+    placeHaloBubble(pos.x, pos.y);
+    el.style.display = logo.visible ? '' : 'none';
+    wireHaloDrag(el);
+    wireHaloTriggers(el);
+
+    // say hello once per session so first-time users know it's alive
+    if (!state._haloSaidHello && logo.visible) {
+      state._haloSaidHello = true;
+      setTimeout(() => toast('info', 'Notehaven logo ✨ tap to open notes · drag to move · long-press for sizes'), 900);
+    }
+
+    // self-heal watchdog: if the host somehow eats the bubble (detached or
+    // zero-sized), rebuild it — a few tries, then warn once and stop trying
+    state._haloWdAttempts = state._haloWdAttempts || 0;
+    setTimeout(() => {
+      const cur = haloBubbleEl;
+      const ok = cur && cur.isConnected && cur.getBoundingClientRect().width > 0;
+      if (ok) { state._haloWdAttempts = 0; return; }
+      if (state._haloWdAttempts < 3) {
+        state._haloWdAttempts += 1;
+        createHalo();
+      } else if (!state._haloWdWarned) {
+        state._haloWdWarned = true;
+        toast('warning', "Notehaven: your browser blocked the floating logo — notes open anytime via input-bar Extras → 'Open Notes'.");
+      }
+    }, 1600);
     syncHaloTab();
   }
 
@@ -3348,7 +3441,7 @@ export function setup(ctx) {
   function setHaloVisible(v) {
     state.settings.logo.visible = v;
     visibleSwitch.checked = v;
-    if (haloWidget) haloWidget.setVisible(v);
+    if (haloBubbleEl) haloBubbleEl.style.display = v ? '' : 'none';
     saveSettingsSoon();
     syncInputBarLabel();
   }
@@ -3357,7 +3450,7 @@ export function setup(ctx) {
     state.settings.logo.x = null;
     state.settings.logo.y = null;
     const d = haloDefaultPos();
-    if (haloWidget) haloWidget.moveTo(d.x, d.y);
+    placeHaloBubble(d.x, d.y);
     posRead.textContent = `x: ${Math.round(d.x)}, y: ${Math.round(d.y)}`;
     saveSettingsSoon();
   }
@@ -3525,7 +3618,7 @@ export function setup(ctx) {
     const input = document.createElement('input');
     input.type = 'range'; input.min = min; input.max = max; input.step = step; input.value = String(get());
     const out = document.createElement('output');
-    out.textContent = (fmt || ((v) => String(v)))(get());
+    out.textContent = (fmt || ((v) => String(v)))(get() ?? min);
     box.append(input, out);
     row.appendChild(box);
     input.addEventListener('input', () => {
@@ -3929,6 +4022,15 @@ export function setup(ctx) {
   });
   disposers.push(() => notesAction.destroy());
   disposers.push(notesAction.onClick(() => openModal()));
+
+  // keep the self-rendered bubble inside the viewport on rotate/resize
+  const onViewportResizeHalo = () => {
+    if (haloBubbleEl && Number.isFinite(state.settings.logo.x)) {
+      placeHaloBubble(state.settings.logo.x, state.settings.logo.y);
+    }
+  };
+  window.addEventListener('resize', onViewportResizeHalo);
+  disposers.push(() => window.removeEventListener('resize', onViewportResizeHalo));
 
 
   /* ==================================================== */
@@ -4833,32 +4935,10 @@ export function setup(ctx) {
 
       if (!['write', 'read', 'source'].includes(state.settings.editor.mode)) state.settings.editor.mode = 'write';
       // 2.1 editor preferences (merge keeps older saves alive)
-      state.settings.editor = {
-        mode: 'write', defaultView: 'write', newTabOnCreate: true, showMode: true,
-        readableLength: false, strictBreaks: false, foldHeading: false, foldIndent: false,
-        lineNumbers: false, guidesEditor: false, rtl: false, lineHeight: 1.65,
-        spellcheck: true, spellLang: 'en', autoPair: false, smartLists: false,
-        indentTabs: false, indentWidth: 4, confirmDelete: true, trashMode: 'permanent',
-        ...state.settings.editor,
-      };
-      state.settings.ui.navExpandSelect = state.settings.ui.navExpandSelect ?? true;
-      state.settings.ui.navOneBranch = state.settings.ui.navOneBranch ?? false;
-      state.settings.ui.navCollapseScope = state.settings.ui.navCollapseScope || 'folders';
-      state.settings.ui.navKeepSelected = state.settings.ui.navKeepSelected ?? false;
-      state.settings.ui.navSpring = state.settings.ui.navSpring ?? false;
-      state.settings.ui.navColorIconsOnly = state.settings.ui.navColorIconsOnly ?? true;
-      state.settings.ui.navShowShortcuts = state.settings.ui.navShowShortcuts ?? true;
-      state.settings.ui.navShortcutIcons = state.settings.ui.navShortcutIcons ?? true;
-      state.settings.ui.navShowRecent = state.settings.ui.navShowRecent ?? true;
-      state.settings.ui.navRecentCount = state.settings.ui.navRecentCount || 5;
-      state.settings.ui.navShowFolderIcons = state.settings.ui.navShowFolderIcons ?? true;
-      state.settings.ui.navGuides = state.settings.ui.navGuides ?? true;
-      state.settings.ui.navShowTags = state.settings.ui.navShowTags ?? true;
-      state.settings.ui.navTagIcons = state.settings.ui.navTagIcons ?? true;
-      state.settings.ui.navTagsFolder = state.settings.ui.navTagsFolder ?? false;
-      state.settings.ui.navUntagged = state.settings.ui.navUntagged ?? false;
-      state.settings.ui.navCounters = { wf: true, wF: true, cf: false, cF: false, tf: false, tF: false, nf: false, ...(state.settings.ui.navCounters || {}) };
-      state.settings.ui.ifaceIcons = { folder: '', note: '', tag: '', ...(state.settings.ui.ifaceIcons || {}) };
+      state.settings.editor = { ...NH_EDITOR_DEFAULTS, ...state.settings.editor };
+      state.settings.ui = { ...NH_UI_DEFAULTS, ...state.settings.ui };
+      state.settings.ui.navCounters = { ...NH_UI_DEFAULTS.navCounters, ...(state.settings.ui.navCounters || {}) };
+      state.settings.ui.ifaceIcons = { ...NH_UI_DEFAULTS.ifaceIcons, ...(state.settings.ui.ifaceIcons || {}) };
       wsInit(); // rebuild tabs/groups/splits from the saved layout
       canvas.classList.add(`nh-mode-${state.settings.editor.mode}`);
       modeBtns.forEach((b) => b.classList.toggle('is-active', b.dataset.mode === state.settings.editor.mode));
@@ -4866,7 +4946,10 @@ export function setup(ctx) {
       toolbar.style.display = state.settings.editor.mode === 'read' ? 'none' : '';
       applyUi();
 
-      createHalo();
+      try { createHalo(); } catch (haloErr) {
+        // the logo must survive even if the rest of boot had a hiccup
+        toast('warning', `Notehaven logo failed: ${haloErr?.message || haloErr}`);
+      }
       syncInputBarLabel();
       renderList();
       refreshDrawerRecent();

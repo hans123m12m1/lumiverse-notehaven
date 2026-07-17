@@ -4,7 +4,7 @@
  * Responsibilities:
  *  - Per-user storage of notes, images, logo and settings (spindle.userStorage)
  *  - Request/response message handling for the frontend module
- *  - {{note::Title}} macro for injecting notes into prompts
+ *  - {{notehaven::Title}} macro (alias {{nhnote::Title}}) for injecting notes into prompts
  *
  * Everything is stored as TEXT (JSON / base64 data URLs) because
  * spindle.userStorage is a text API — this keeps the extension free-tier
@@ -194,7 +194,7 @@ const WELCOME_CONTENT = [
   '',
   'Insert any note into a prompt with the macro:',
   '',
-  '`{{note::Welcome to Notehaven 🌙}}`',
+  '`{{notehaven::Welcome to Notehaven 🌙}}` — short alias: `{{nhnote::…}}`',
   '',
   'And use the **⋯ menu** up top to export your notes or import .md / .json files.',
   '',
@@ -796,42 +796,57 @@ spindle.onFrontendMessage(async (payload, userId) => {
 });
 
 /* ------------------------------------------------------------------ */
-/* {{note::Title}} macro                                               */
+/* {{notehaven::Title}} macro (alias {{nhnote::Title}})                 */
 /* ------------------------------------------------------------------ */
 
-spindle.registerMacro({
-  name: 'note',
-  category: 'extension:notehaven',
-  description: 'Insert the content of a Notehaven note, e.g. {{note::Story Ideas}}',
-  returnType: 'string',
-  args: [{ name: 'title', description: 'Title of the note (exact or prefix match)', required: true }],
-  volatile: true,
-  handler: async (macroCtx) => {
-    try {
-      const args = macroCtx?.args;
-      const wanted = String(Array.isArray(args) ? args[0] : args?.title ?? '').trim();
-      if (!wanted) return '';
+/* NOTE: older Notehaven builds registered this as {{note::…}}, but
+   Lumiverse ships a built-in macro named "note" and refuses overrides
+   ("Cannot override built-in macro: note"). Hence the own namespace. */
 
-      const userId = macroCtx?.userId ?? macroCtx?.env?.userId ?? macroCtx?.env?.user?.id ?? undefined;
-      const index = await readIndex(userId);
-      const lower = wanted.toLowerCase();
-      const meta = index.notes.find((n) => n.title.toLowerCase() === lower)
-        || index.notes.find((n) => n.title.toLowerCase().startsWith(lower));
-      if (!meta) return `[Notehaven: no note titled "${wanted}"]`;
+const noteMacroHandler = async (macroCtx) => {
+  try {
+    const args = macroCtx?.args;
+    const wanted = String(Array.isArray(args) ? args[0] : args?.title ?? '').trim();
+    if (!wanted) return '';
 
-      const note = await spindle.userStorage.getJson(notePath(meta.id), { fallback: null, userId });
-      if (!note) return `[Notehaven: note "${wanted}" could not be read]`;
+    const userId = macroCtx?.userId ?? macroCtx?.env?.userId ?? macroCtx?.env?.user?.id ?? undefined;
+    const index = await readIndex(userId);
+    const lower = wanted.toLowerCase();
+    const meta = index.notes.find((n) => n.title.toLowerCase() === lower)
+      || index.notes.find((n) => n.title.toLowerCase().startsWith(lower));
+    if (!meta) return `[Notehaven: no note titled "${wanted}"]`;
 
-      // Replace embedded images with a text placeholder for the LLM
-      return note.content.replace(
-        /!\[([^\]]*)\]\(nh-img:\/\/[A-Za-z0-9_-]+\)/g,
-        (_m, alt) => `[Image: ${alt || 'embedded'}]`,
-      );
-    } catch (err) {
-      spindle.log.warn(`Notehaven macro failed: ${err?.message || err}`);
-      return '';
-    }
-  },
-});
+    const note = await spindle.userStorage.getJson(notePath(meta.id), { fallback: null, userId });
+    if (!note) return `[Notehaven: note "${wanted}" could not be read]`;
+
+    // Replace embedded images with a text placeholder for the LLM
+    return note.content.replace(
+      /!\[([^\]]*)\]\(nh-img:\/\/[A-Za-z0-9_-]+\)/g,
+      (_m, alt) => `[Image: ${alt || 'embedded'}]`,
+    );
+  } catch (err) {
+    spindle.log.warn(`Notehaven macro failed: ${err?.message || err}`);
+    return '';
+  }
+};
+
+for (const nhDef of [
+  { name: 'notehaven', description: 'Insert the content of a Notehaven note, e.g. {{notehaven::Story Ideas}}' },
+  { name: 'nhnote', description: 'Short alias of {{notehaven::Title}} — insert a Notehaven note' },
+]) {
+  try {
+    spindle.registerMacro({
+      name: nhDef.name,
+      category: 'extension:notehaven',
+      description: nhDef.description,
+      returnType: 'string',
+      args: [{ name: 'title', description: 'Title of the note (exact or prefix match)', required: true }],
+      volatile: true,
+      handler: noteMacroHandler,
+    });
+  } catch (err) {
+    spindle.log.warn(`Could not register {{${nhDef.name}}} macro: ${err?.message || err}`);
+  }
+}
 
 spindle.log.info('Notehaven backend loaded 🌙');

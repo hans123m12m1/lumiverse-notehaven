@@ -1,12 +1,12 @@
 {
-  "version": "2.1.0",
+  "version": "2.1.3",
   "name": "Notehaven",
   "identifier": "notehaven",
   "author": "hans123m12m1",
   "github": "https://github.com/hans123m12m1/lumiverse-notehaven",
   "homepage": "https://github.com/hans123m12m1/lumiverse-notehaven#readme",
-  "description": "Cozy Obsidian-inspired notes with wiki-links, tags and embedded images — plus a floating, resizable chat logo (the Halo) you can move, resize, show or hide.",
-  "permissions": ["ui_panels"],
+  "description": "Cozy Obsidian-inspired notes with wiki-links, tags and embedded images — plus a floating, resizable chat logo (the Halo) that works on every device, no permissions needed.",
+  "permissions": [],
   "entry_backend": "dist/backend.js",
   "entry_frontend": "dist/frontend.js",
   "minimum_lumiverse_version": "0.1.0"

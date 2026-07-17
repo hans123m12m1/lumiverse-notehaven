@@ -16,6 +16,47 @@ No build step required — `dist/` is hand-written, dependency-free ES2022 and i
 
 ---
 
+## What's new in 2.1.3 — the "it actually boots now" hotfix
+
+- **CRITICAL FIX:** v2.1.0–2.1.2 shipped a startup race — the Settings cards
+  rendered before the new editor defaults were backfilled, so `lineHeight` was
+  `undefined` and the whole frontend crashed on load (`settings.editor`…
+  TypeError, caught only by the boot toast). Result: **no modal, no drawer
+  tabs, no Halo, anywhere.** This was the real reason nobody saw the widget.
+  Defaults are now a single shared table applied at BOTH setup and boot.
+- **Fixed:** a leftover code fragment from the 2.1.2 Halo surgery that could
+  swallow part of the Halo wiring.
+- **New permanent regression net:** the test suite now executes the real
+  `setup()` end-to-end in a stub host (boot, drawer tabs, input-bar actions,
+  Halo mount, teardown) — broken-boot bugs cannot ship again.
+- Everything from 2.1.2 stays: the Halo renders itself (no permissions, works
+  on phones), drag/snap/tap/long-press, self-heal watchdog, zero-permission
+  install, `{{notehaven::Title}}` macro + `{{nhnote::…}}` alias.
+
+## What's new in 2.1.2
+
+- **The Halo is finally, reliably VISIBLE — on desktop AND phones.** The host
+  floating-widget API is gone: Notehaven now renders the logo itself, straight
+  onto the page. No permissions to grant, nothing for the host to silently hide.
+  Drag it (mouse or touch), snap-to-edge, tap to open, long-press/right-click for
+  sizes, Ctrl+scroll to resize on PC — everything persisted.
+- A self-healing **watchdog** rebuilds the logo if your browser ever eats it.
+- Zero-permission install: the extension no longer asks for `ui_panels`.
+- If you hid the logo earlier and forgot: input-bar **Extras → “Show Chat Logo”**.
+
+## What's new in 2.1.1
+
+- **Fixed:** `Cannot override built-in macro: note` — Lumiverse owns a built-in
+  `{{note}}` macro, so Notehaven now registers **`{{notehaven::Title}}`** plus the
+  short alias **`{{nhnote::Title}}`** instead. Update any prompts using the old name.
+- **Fixed:** the Halo could be completely invisible (reported on both mobile and
+  desktop) when the host refused the floating widget (`ui_panels` not granted or
+  widgets unsupported). Notehaven now falls back to its **own self-rendered bubble** —
+  same logo, drag it around, snap-to-edge, position persists, taps/long-press/ctrl-scroll
+  all work. Grant `ui_panels` whenever you want the native widget back.
+- **Reminder:** on any device you can always open your notes from the chat input bar
+  **Extras → “Open Notes”**.
+
 ## Installation
 
 1. Push this folder to a GitHub repository (replace the `github` / `homepage` fields and `author` in `spindle.json` with yours).
@@ -112,7 +153,7 @@ Everything persists per user at `{DATA_DIR}/users/{userId}/extensions/notehaven/
 Insert any note into a prompt or preset block:
 
 ```
-{{note::Story Ideas}}
+{{notehaven::Story Ideas}}   # or the short alias: {{nhnote::Story Ideas}}
 ```
 
 Matches titles case-insensitively (exact, then prefix), strips embedded images into `[Image: …]` placeholders, and is marked `volatile` so it always reads fresh content.
@@ -123,7 +164,7 @@ Matches titles case-insensitively (exact, then prefix), strips embedded images i
 notehaven/
 ├── spindle.json        # manifest (identifier: notehaven)
 ├── dist/
-│   ├── backend.js      # userStorage persistence, RPC handlers, {{note}} macro
+│   ├── backend.js      # userStorage persistence, RPC handlers, {{notehaven}} macro
 │   └── frontend.js     # drawer tabs, editor, preview renderer, Halo float widget
 └── README.md
 ```
