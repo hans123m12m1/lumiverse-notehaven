@@ -94,6 +94,8 @@ const NH_CSS = `
   .nh-modal {
     width: min(1060px, 94vw);
     height: min(720px, 90vh);
+    max-width: 96vw;      /* safety net: custom sizes can never leave the viewport */
+    max-height: 94vh;     /* …so the ◢ resize grip can never fall off-screen again */
     background: var(--nh-bg);
     border: 1px solid var(--nh-border);
     border-radius: 20px;
@@ -261,7 +263,7 @@ const NH_CSS = `
   /* phones: take over the whole screen */
   @media (max-width: 560px) {
     .nh-overlay { padding: 0; }
-    .nh-modal { width: 100vw; height: 100vh; height: 100dvh; border-radius: 0; border: 0; }
+    .nh-modal { width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none; border-radius: 0; border: 0; }
     .nh-mhead { flex-wrap: wrap; row-gap: 7px; }
     .nh-search { order: 5; flex-basis: 100%; }
     .nh-title { font-size: 16px; }
@@ -2682,10 +2684,16 @@ export function setup(ctx) {
       ? `${Math.min(u.railWidth, Math.max(200, vw * 0.78))}px`
       : `${u.railWidth}px`;
 
-    // modal size — only on desktop; phones keep the full-screen sheet
-    const showSheet = vw > 560;
-    modalEl.style.width = showSheet && u.modalW ? `${u.modalW}px` : '';
-    modalEl.style.height = showSheet && u.modalH ? `${u.modalH}px` : '';
+    // modal size — only on desktop; phones keep the full-screen sheet.
+    // clamp persisted sizes to TODAY's viewport (screen/zoom may have changed
+    // since the size was saved) so the resize grip never falls off-screen.
+    const vh = window.innerHeight || 800;
+    const mw = u.modalW ? Math.min(u.modalW, Math.max(400, vw - 16)) : 0;
+    const mh = u.modalH ? Math.min(u.modalH, Math.max(280, vh - 12)) : 0;
+    if (u.modalW && mw !== u.modalW) state.settings.ui.modalW = mw; // self-heal bad values
+    if (u.modalH && mh !== u.modalH) state.settings.ui.modalH = mh;
+    modalEl.style.width = showSheet && mw ? `${mw}px` : '';
+    modalEl.style.height = showSheet && mh ? `${mh}px` : '';
 
     if (removeUiCss) { removeUiCss(); removeUiCss = null; }
     if (u.customCSS && u.customCSS.trim()) removeUiCss = ctx.dom.addStyle(u.customCSS);
