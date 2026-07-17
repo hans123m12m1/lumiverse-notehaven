@@ -133,6 +133,7 @@ async function readIndex(userId) {
     if (n.icon === undefined) n.icon = '';           // note icon (2.0)
     if (typeof n.tokens !== 'number') n.tokens = Math.ceil((n.snippet ? n.words * 5 : 0) / 4) || 0; // rough backfill; real value on next save
     if (typeof n.newlines !== 'number') n.newlines = 0;
+    if (typeof n.chars !== 'number') n.chars = (n.tokens || 0) * 4; // backfill; exact on next save
   }
   return idx;
 }
@@ -297,6 +298,7 @@ const handlers = {
       words: wordCount(note.content),
       tokens: Math.ceil(note.content.length / 4), // ≈chars/4 until the host tokenizer exists
       newlines: (note.content.match(/\n/g) || []).length,
+      chars: note.content.length,
       icon: '',
       imageIds: [],
       createdAt: now,
@@ -338,6 +340,7 @@ const handlers = {
     meta.words = wordCount(content);
     meta.tokens = Math.ceil(content.length / 4);
     meta.newlines = (content.match(/\n/g) || []).length;
+    meta.chars = content.length;
     meta.imageIds = keepIds;
     meta.updatedAt = now;
     await writeIndex(index, userId);

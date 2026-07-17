@@ -415,8 +415,11 @@ const NH_CSS = `
 
   /* source mode */
   .nh-source { display: none; }
+  .nh-srcwrap { display: none; }
   .nh-mode-source .nh-surfacewrap { display: none; }
-  .nh-mode-source .nh-source { display: block; flex: 1; width: 100%; border: 0; outline: none; resize: none; background: var(--nh-bg); color: var(--nh-text); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: var(--nh-editor-fs, 13.5px); line-height: 1.55; padding: 12px 14px; tab-size: 2; }
+  .nh-mode-source .nh-srcwrap { display: flex; flex: 1; min-height: 0; }
+  .nh-mode-source .nh-source { display: block; flex: 1; width: 100%; border: 0; outline: none; resize: none; background: var(--nh-bg); color: var(--nh-text); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: var(--nh-editor-fs, 13.5px); line-height: var(--nh-editor-lh, 1.55); padding: 12px 14px; tab-size: 2; }
+  .nh-linegutter { flex: 0 0 auto; width: 3.2em; margin: 0; padding: 12px 7px 12px 0; text-align: right; overflow: hidden; user-select: none; color: var(--nh-muted); opacity: .55; border-right: 1px solid var(--nh-border); background: color-mix(in srgb, var(--nh-bg) 70%, transparent); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: calc(var(--nh-editor-fs, 13.5px) - 1px); line-height: var(--nh-editor-lh, 1.55); white-space: pre; }
 
   /* find & replace bar */
   .nh-findbar { display: none; flex: 0 0 auto; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid var(--nh-border); flex-wrap: wrap; }
@@ -477,6 +480,28 @@ const NH_CSS = `
   .nh-nav-tag { margin: 3px; cursor: pointer; }
   .nh-nav-fold .nh-fico { font-size: 13px; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; flex: 0 0 auto; }
   .nh-nav-fold .nh-fico img { width: 18px; height: 18px; object-fit: cover; border-radius: 5px; }
+
+  /* ============ 2.1 editor display prefs ============ */
+  .nh-preview, .nh-source { line-height: var(--nh-editor-lh, 1.65); }
+  .nh-rll .nh-preview, .nh-rll .nh-source, .nh-rll .nh-linegutter { max-width: 46rem; }
+  .nh-rll .nh-surfacewrap, .nh-rll .nh-srcwrap { max-width: 46rem; margin: 0 auto; width: 100%; }
+  .nh-guides-ed .nh-preview ul, .nh-guides-ed .nh-preview ol { border-left: 1px solid color-mix(in srgb, var(--nh-muted) 20%, transparent); padding-left: 1.25em; margin-left: .2em; }
+  .nh-rtl, .nh-rtl input, .nh-rtl textarea { direction: rtl; text-align: right; }
+  .nh-rtl .nh-toolbar, .nh-rtl .nh-statusbar { direction: ltr; }
+  .nh-preview h1.nh-folded, .nh-preview h2.nh-folded, .nh-preview h3.nh-folded, .nh-preview h4.nh-folded, .nh-preview h5.nh-folded, .nh-preview h6.nh-folded { opacity: .65; cursor: pointer; }
+  .nh-preview .nh-folded::after { content: ' ▸'; color: var(--nh-muted); font-size: .72em; }
+  .nh-preview li.nh-folded-li { list-style: none; }
+  .nh-preview li.nh-folded-li::before { content: '▸ '; color: var(--nh-muted); }
+  .nh-crumb { flex: 0 1 auto; max-width: 128px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10.5px; border: 1px solid var(--nh-border); padding: 3px 8px; border-radius: 9px; color: var(--nh-muted); background: color-mix(in srgb, var(--nh-accent) 7%, transparent); }
+  @media (max-width: 700px) { .nh-crumb { display: none; } }
+  .nh-nbadge.nh-ext { text-transform: uppercase; letter-spacing: .05em; }
+  .nh-pane.nh-drop { outline: 1.5px dashed var(--nh-accent); outline-offset: -4px; }
+  .nh-color-labels .nh-nav-note .nh-nav-title { color: var(--rowc, inherit); }
+  .nh-color-labels .nh-nav-fold .nh-nav-title { color: var(--rowc, inherit); }
+  .nh-guides-tree .nh-nav-row { position: relative; }
+  .nh-guides-tree .nh-nav-note::before { content: ''; position: absolute; left: calc(var(--depth, 0) * 15px - 1px); top: 2px; bottom: 2px; width: 1px; background: color-mix(in srgb, var(--nh-muted) 16%, transparent); }
+  .nh-tag-ico { margin-right: 3px; }
+  .nh-field input[type="text"].nh-sel { padding: 6px 10px; font-size: 12px; }
 `;
 
 /* ================================================================ */
@@ -736,8 +761,19 @@ function downscaleImage(file, maxDim) {
 /* 4. Markdown-lite renderer (XSS-safe: escape first, then tokens)   */
 /* ================================================================ */
 
-function renderMarkdown(src, opts) {
+/* [testable:mergeSoftBreaks:start] */
+  // Strict line breaks (markdown spec): single \n collapses to a space.
+  // Code fences are sacred — never touch their insides.
+  function mergeSoftBreaks(src) {
+    return String(src).split(/(```[\s\S]*?(?:```|$))/g)
+      .map((p, i) => (i % 2 === 1 ? p : p.replace(/([^\n])\n(?!\n)/g, '$1 ')))
+      .join('');
+  }
+  /* [testable:mergeSoftBreaks:end] */
+
+  function renderMarkdown(src, opts) {
   const missing = new Set(opts?.missingTitles || []);
+  if (opts?.strictBreaks) src = mergeSoftBreaks(src);
   const stash = [];
 
   // 1) pull out fenced code blocks + inline code before escaping
@@ -932,6 +968,7 @@ export function setup(ctx) {
           <div class="nh-editor">
             <div class="nh-tabs"></div>
             <div class="nh-editor-head">
+              <span class="nh-crumb" title="Lives in this folder">📥</span>
               <input class="nh-title" type="text" placeholder="Untitled Note" spellcheck="false">
               <div class="nh-modegroup">
                 <button class="nh-modebtn" data-mode="write">✍ Live</button>
@@ -957,7 +994,7 @@ export function setup(ctx) {
               <div class="nh-surfacewrap nh-scroll">
                 <div class="nh-preview nh-editor-surface" contenteditable="true" spellcheck="true"></div>
               </div>
-              <textarea class="nh-source nh-scroll" spellcheck="false" placeholder="# raw markdown source"></textarea>
+              <div class="nh-srcwrap"><pre class="nh-linegutter" aria-hidden="true"></pre><textarea class="nh-source nh-scroll" spellcheck="false" placeholder="# raw markdown source"></textarea></div>
             </div>
             <div class="nh-statusbar">
               <span class="nh-savestate"><span class="nh-pulse"></span><span class="nh-savetext">Saved</span></span>
@@ -1007,6 +1044,9 @@ export function setup(ctx) {
   const wsMinBtn = overlayWrap.querySelector('.nh-ws-min');
   const wsFullBtn = overlayWrap.querySelector('.nh-ws-full');
   const mheadEl = overlayWrap.querySelector('.nh-mhead');
+  const crumbEl = overlayWrap.querySelector('.nh-crumb');
+  const gutterEl = overlayWrap.querySelector('.nh-linegutter');
+  const modeGroupEl = overlayWrap.querySelector('.nh-modegroup');
   const titleInput = overlayWrap.querySelector('.nh-title');
   const pinBtn = overlayWrap.querySelector('.nh-pinbtn');
   const delBtn = overlayWrap.querySelector('.nh-delbtn');
@@ -1340,6 +1380,11 @@ export function setup(ctx) {
     }
     if (icon.startsWith('img:')) return `<span class="nh-fico"><img data-folder-ico="${icon.slice(4)}" alt=""></span>`;
     if (icon) return `<span class="nh-fico">${escapeHtml(icon)}</span>`;
+    const iface = state.settings?.ui?.ifaceIcons?.folder || '';
+    if (iface.startsWith('svg:') && NH_ICON_LIB[iface.slice(4)]) {
+      return `<span class="nh-fico" style="color:${folder?.color || '#b28cff'}">${NH_ICON_LIB[iface.slice(4)].replace('<svg', '<svg width="15" height="15"')}</span>`;
+    }
+    if (iface) return `<span class="nh-fico">${escapeHtml(iface)}</span>`;
     return `<span class="nh-fico" style="background:${folder?.color || '#b28cff'}30">📁</span>`;
   }
 
@@ -1788,6 +1833,7 @@ export function setup(ctx) {
       position: { x, y },
       items: [
         { key: 'rename', label: '✏️ Rename' },
+        { key: 'open-newtab', label: '🗖 Open in new tab' },
         { key: 'open-right', label: '↔ Open to the right (split view)' },
         { key: 'pin', label: meta.pinned ? '📌 Unpin' : '📌 Pin to top' },
         { key: 'icon', label: '🖼 Change icon…' },
@@ -1801,6 +1847,10 @@ export function setup(ctx) {
       ],
     });
     if (!selectedKey) return;
+    if (selectedKey === 'open-newtab') {
+      openInNewTabFlow(meta.id);
+      return;
+    }
     if (selectedKey === 'open-right') {
       openModal(meta.id);
       setTimeout(() => splitCurrent('row', meta.id), 80); // pane twins the note instantly
@@ -1869,6 +1919,7 @@ export function setup(ctx) {
     const nls = ((state.current?.content || '').match(/\n/g) || []).length;
     wordsEl.textContent = `${words} words · ~${tokens} tokens · ${nls} ↵`;
     whenEl.textContent = `edited ${fmtDate(meta.updatedAt)}`;
+    refreshCrumb();
   }
 
   function renderPreview() {
@@ -1876,7 +1927,7 @@ export function setup(ctx) {
     const titles = new Set(state.index.notes.map((n) => n.title.toLowerCase()));
     const allTargets = [...state.current.content.matchAll(/\[\[([^\][|]{1,120})/g)].map((m) => unescapeHtml(m[1]).trim().toLowerCase());
     const missing = allTargets.filter((t) => !titles.has(t));
-    preview.innerHTML = renderMarkdown(state.current.content, { missingTitles: missing });
+    preview.innerHTML = renderMarkdown(state.current.content, { missingTitles: missing, strictBreaks: state.settings.editor.strictBreaks });
     hydrateImages();
   }
 
@@ -2068,6 +2119,11 @@ export function setup(ctx) {
       renderList(); refreshPinBtn(); renderStatus(); renderPreview();
       applyMode(state.settings.editor.mode);
       wsNoteShown(id); // the workspace watches which note is on stage
+      if (state._freshTabView) {
+        const v = state._freshTabView;
+        state._freshTabView = null;
+        if (v !== state.settings.editor.mode) applyMode(v);
+      }
     } catch (err) {
       toast('error', err.message || 'Could not open note');
     }
@@ -2085,6 +2141,24 @@ export function setup(ctx) {
   }
 
   async function deleteNote(id) {
+    // 🗑 Trash folder mode: move instead of erase (but deleting FROM trash is final)
+    if (state.settings.editor.trashMode === 'trash-folder') {
+      try {
+        let trash = (state.index.folders || []).find((f) => f.name === '🗑 Trash');
+        const meta = metaOf(id);
+        if (trash && meta && meta.folderId === trash.id) {
+          // already in trash → fall through to real deletion
+        } else {
+          if (!trash) {
+            const r = await rpc('create_folder', { name: '🗑 Trash' });
+            trash = r.folder; state.index = r.index;
+          }
+          await moveNotes([id], trash.id);
+          toast('info', 'Moved to 🗑 Trash — delete it there to really erase');
+          return;
+        }
+      } catch (err) { toast('error', err.message || 'Could not move to trash'); return; }
+    }
     try {
       const { index } = await rpc('delete_note', { id });
       state.index = index;
@@ -2164,6 +2238,7 @@ export function setup(ctx) {
   delBtn.addEventListener('click', () => {
     const id = state.currentId;
     if (!id) return;
+    if (state.settings.editor.confirmDelete === false) { deleteNote(id); return; } // one-tap, per setting
     if (!delArmed) {
       delBtn.classList.add('confirm');
       delBtn.innerHTML = 'Sure?';
@@ -2564,18 +2639,20 @@ export function setup(ctx) {
       groups[groups.length - 1].push(tok);
     }
     return groups.map((grp) => {
-      const o = { and: [], not: [], tags: [], folder: null };
+      const o = { and: [], not: [], tags: [], folder: null, untagged: false };
       for (const t of grp) {
         if (t.startsWith('-') && t.length > 1) o.not.push(t.slice(1).toLowerCase());
         else if (t.startsWith('#') && t.length > 1) o.tags.push(t.slice(1).toLowerCase());
         else if (/^folder:/i.test(t) && t.length > 7) o.folder = t.slice(7).toLowerCase();
+        else if (/^is:untagged$/i.test(t)) o.untagged = true;
         else o.and.push(t.toLowerCase());
       }
       return o;
-    }).filter((g) => g.and.length || g.not.length || g.tags.length || g.folder);
+    }).filter((g) => g.and.length || g.not.length || g.tags.length || g.folder || g.untagged);
   }
   function navGroupMatch(meta, folders, g) {
     const title = String(meta.title || '').toLowerCase();
+    if (g.untagged && (meta.tags || []).length) return false;
     if (g.not.some((w) => title.includes(w))) return false;
     if (!g.and.every((w) => title.includes(w))) return false;
     if (!g.tags.every((t) => (meta.tags || []).some((x) => x.toLowerCase() === t))) return false;
@@ -2604,13 +2681,13 @@ export function setup(ctx) {
     return { notes: notes.filter((n) => !n.folderId), children: walk('', 0) };
   }
   function folderTotals(node) {
-    let words = 0, tokens = 0, subs = node.children.length, count = node.notes.length;
-    for (const n of node.notes) { words += n.words || 0; tokens += n.tokens || 0; }
+    let words = 0, tokens = 0, chars = 0, subs = node.children.length, count = node.notes.length;
+    for (const n of node.notes) { words += n.words || 0; tokens += n.tokens || 0; chars += n.chars != null ? n.chars : (n.tokens || 0) * 4; }
     for (const c of node.children) {
       const t = folderTotals(c);
-      words += t.words; tokens += t.tokens; subs += t.subs; count += t.count;
+      words += t.words; tokens += t.tokens; chars += t.chars; subs += t.subs; count += t.count;
     }
-    return { words, tokens, subs, count };
+    return { words, tokens, chars, subs, count };
   }
   function isFolderAncestor(folders, maybeAncestorId, folderId) {
     let cur = folders.find((f) => f.id === folderId);
@@ -2622,6 +2699,13 @@ export function setup(ctx) {
       hops++;
     }
     return false;
+  }
+  // every folder id living under `id` (for one-branch collapsing)
+  function folderSubtreeIds(folders, id) {
+    const out = [];
+    const walk = (p) => { for (const f of folders) if (f.parentId === p) { out.push(f.id); walk(f.id); } };
+    walk(id);
+    return out;
   }
   /* [testable:navPure:end] */
 
@@ -2675,19 +2759,61 @@ export function setup(ctx) {
   function navToggleCollapse(key) {
     const list = state.settings.ui.collapsed || (state.settings.ui.collapsed = []);
     const i = list.indexOf(key);
-    if (i >= 0) list.splice(i, 1); else list.push(key);
+    if (i >= 0) {
+      list.splice(i, 1);
+      // "One expanded branch": unfolding a folder folds its siblings (+subtrees)
+      if (state.settings.ui.navOneBranch && key.startsWith('ft:')) {
+        const fid = key.slice(3);
+        const f = (state.index.folders || []).find((x) => x.id === fid);
+        if (f) {
+          const sibs = (state.index.folders || []).filter((x) => x.id !== fid && (x.parentId || null) === (f.parentId || null));
+          for (const s of sibs) {
+            for (const id of [s.id, ...folderSubtreeIds(state.index.folders, s.id)]) {
+              if (!list.includes('ft:' + id)) list.push('ft:' + id);
+            }
+          }
+        }
+      }
+    } else list.push(key);
     saveSettingsSoon();
     renderNav();
   }
 
-  function navNoteRow(meta, depth) {
+  function navFileBadgeHtml(meta) {
+    const c = state.settings.ui.navCounters;
+    const bits = [];
+    if (c.wf) bits.push((meta.words || 0) + 'w');
+    if (c.tf) bits.push('~' + (meta.tokens != null ? meta.tokens : Math.ceil((meta.words || 0) * 1.25)) + 't');
+    if (c.cf) bits.push((meta.chars || 0) + 'c');
+    if (c.nf) bits.push((meta.newlines || 0) + '↵');
+    const extM = String(meta.title).match(/\.([a-z0-9]{1,5})$/i);
+    const ext = extM ? `<span class="nh-nbadge nh-ext">${extM[1].toLowerCase()}</span>` : '';
+    return `${ext}<span class="nh-nbadge">${bits.join(' · ') || ((meta.words || 0) + 'w')}</span>`;
+  }
+
+  function navNoteRow(meta, depth, showIcon = true) {
     const row = document.createElement('button');
     row.className = 'nh-nav-row nh-nav-note' + (meta.id === state.currentId ? ' active' : '');
     row.style.setProperty('--depth', depth);
+    row.style.setProperty('--rowc', meta.color || 'inherit');
     row.draggable = true;
-    row.innerHTML = `<span class="nh-nav-ico">${noteIconHtml(meta, 13) || '<span class="nh-nico-dot" style="background:' + (meta.color || '#b28cff') + ';width:8px;height:8px;border-radius:50%;display:inline-block"></span>'}</span><span class="nh-nav-title">${escapeHtml(meta.title)}</span><span class="nh-nbadge">${meta.words ?? 0}w</span>`;
-    row.title = `${meta.title} — ${meta.words ?? 0} words · ~${meta.tokens ?? 0} tokens · ${meta.newlines ?? 0} ↵ · ${fmtDate(meta.updatedAt)}`;
-    row.addEventListener('click', () => openModal(meta.id));
+    row.innerHTML = `<span class="nh-nav-ico">${showIcon ? (noteIconHtml(meta, 13) || '<span class="nh-nico-dot" style="background:' + (meta.color || '#b28cff') + ';width:8px;height:8px;border-radius:50%;display:inline-block"></span>') : ''}</span><span class="nh-nav-title">${escapeHtml(meta.title)}</span>${navFileBadgeHtml(meta)}`;
+    row.title = `${meta.title} — ${meta.words ?? 0} words · ~${meta.tokens ?? 0} tokens · ${meta.chars ?? 0} chars · ${meta.newlines ?? 0} ↵ · ${fmtDate(meta.updatedAt)}`;
+    row.addEventListener('click', () => {
+      // Expand-on-selection: unfold the note's folder chain
+      if (state.settings.ui.navExpandSelect !== false && meta.folderId) {
+        const list = state.settings.ui.collapsed || [];
+        let changed = false;
+        let pid = meta.folderId, hops = 0;
+        while (pid && hops++ < 12) {
+          const i = list.indexOf('ft:' + pid);
+          if (i >= 0) { list.splice(i, 1); changed = true; }
+          pid = ((state.index.folders || []).find((f) => f.id === pid) || {}).parentId || null;
+        }
+        if (changed) { state.settings.ui.collapsed = list; saveSettingsSoon(); }
+      }
+      openModal(meta.id);
+    });
     row.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       if (Date.now() - state.lastLPAt < 900) return;
@@ -2707,12 +2833,20 @@ export function setup(ctx) {
     const key = 'ft:' + folder.id;
     const collapsed = navCollapsed(key);
     const totals = folderTotals(node);
+    const c = state.settings.ui.navCounters;
+    const cbits = [];
+    if (c.wF) cbits.push(`${totals.words}w`);
+    if (c.tF) cbits.push(`~${totals.tokens}t`);
+    if (c.cF) cbits.push(`${totals.chars || 0}c`);
+    const fBadge = cbits.length ? `${totals.count} · ${cbits.join(' ')}` : (totals.count > 99 ? '99+' : totals.count);
     const row = document.createElement('div');
     row.className = 'nh-nav-row nh-nav-fold' + (collapsed ? ' collapsed' : '') + (folder.pinned ? ' pinned' : '');
     row.style.setProperty('--depth', depth);
+    row.style.setProperty('--rowc', folder.color || 'inherit');
     row.draggable = true;
     row.dataset.folderId = folder.id;
-    row.innerHTML = `<span class="nh-nav-chev">${ICONS.chev}</span>${folderIconHtml(folder)}<span class="nh-nav-title">${escapeHtml(folder.name)}</span>${folder.pinned ? '<span class="nh-fpin">📌</span>' : ''}<span class="nh-nbadge" title="${totals.words} words · ~${totals.tokens} tokens in ${totals.count} note(s)${totals.subs ? ` · ${totals.subs} subfolder(s)` : ''}">${totals.count > 99 ? '99+' : totals.count}</span>`;
+    const fico = state.settings.ui.navShowFolderIcons === false ? '' : folderIconHtml(folder);
+    row.innerHTML = `<span class="nh-nav-chev">${ICONS.chev}</span>${fico}<span class="nh-nav-title">${escapeHtml(folder.name)}</span>${folder.pinned ? '<span class="nh-fpin">📌</span>' : ''}<span class="nh-nbadge" title="${totals.count} note(s) · ${cbits.join(' · ') || 'counters off'}${totals.subs ? ` · ${totals.subs} subfolder(s)` : ''}">${fBadge}</span>`;
     row.addEventListener('click', () => navToggleCollapse(key));
     row.addEventListener('contextmenu', (e) => {
       e.preventDefault();
@@ -2732,12 +2866,21 @@ export function setup(ctx) {
       e.dataTransfer.effectAllowed = 'move';
     });
     row.addEventListener('dragover', (e) => {
-      if (e.dataTransfer.types.includes('text/nh-note') || e.dataTransfer.types.includes('text/nh-folder')) { e.preventDefault(); row.classList.add('nh-drop'); }
+      if (e.dataTransfer.types.includes('text/nh-note') || e.dataTransfer.types.includes('text/nh-folder')) {
+        e.preventDefault();
+        row.classList.add('nh-drop');
+        // spring-loaded: hover while dragging unfolds the folder after a beat
+        if (state.settings.ui.navSpring && collapsed && !row._spring) {
+          row._spring = setTimeout(() => { row._spring = null; navToggleCollapse(key); }, 550);
+        }
+      }
     });
-    row.addEventListener('dragleave', () => row.classList.remove('nh-drop'));
+    const springOff = () => { if (row._spring) { clearTimeout(row._spring); row._spring = null; } };
+    row.addEventListener('dragleave', () => { row.classList.remove('nh-drop'); springOff(); });
     row.addEventListener('drop', async (e) => {
       e.preventDefault();
       row.classList.remove('nh-drop');
+      springOff();
       const noteId = e.dataTransfer.getData('text/nh-note');
       if (noteId) { await moveNotes([noteId], folder.id); return; }
       const foldId = e.dataTransfer.getData('text/nh-folder');
@@ -2794,6 +2937,7 @@ export function setup(ctx) {
 
     for (const key of navOrder()) {
       if (key === 'shortcuts') {
+        if (state.settings.ui.navShowShortcuts === false) continue;
         const pinned = sortNotes(notes.filter((n) => n.pinned), state.settings.ui.navSort);
         const pinnedFolds = folders.filter((f) => f.pinned);
         navBody.appendChild(navSectionHead('shortcuts', pinned.length + pinnedFolds.length));
@@ -2813,12 +2957,13 @@ export function setup(ctx) {
           row.addEventListener('contextmenu', (e) => { e.preventDefault(); folderContextMenu(e.clientX, e.clientY, f); });
           navBody.appendChild(row);
         }
-        for (const n of pinned) navBody.appendChild(navNoteRow(n, 0));
+        for (const n of pinned) navBody.appendChild(navNoteRow(n, 0, state.settings.ui.navShortcutIcons !== false));
       } else if (key === 'recent') {
-        const recent = sortNotes(notes, 'updated-desc').slice(0, 5);
+        if (state.settings.ui.navShowRecent === false) continue;
+        const recent = sortNotes(notes, 'updated-desc').slice(0, Math.max(1, state.settings.ui.navRecentCount || 5));
         navBody.appendChild(navSectionHead('recent', recent.length));
         if (navCollapsed('nav:recent')) continue;
-        for (const n of recent) navBody.appendChild(navNoteRow(n, 0));
+        for (const n of recent) navBody.appendChild(navNoteRow(n, 0, state.settings.ui.navShortcutIcons !== false));
       } else if (key === 'tree') {
         const tree = buildFolderTree(folders, notes);
         navBody.appendChild(navSectionHead('tree', notes.length));
@@ -2848,31 +2993,72 @@ export function setup(ctx) {
           for (const n of sortNotes(tree.notes, state.settings.ui.navSort)) navBody.appendChild(navNoteRow(n, 0));
         }
       } else if (key === 'tags') {
+        if (state.settings.ui.navShowTags === false) continue;
         const counts = new Map();
         for (const n of notes) for (const t of n.tags || []) counts.set(t, (counts.get(t) || 0) + 1);
         const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+        const untagged = notes.filter((n) => !(n.tags || []).length).length;
         navBody.appendChild(navSectionHead('tags', sorted.length));
         if (navCollapsed('nav:tags')) continue;
-        if (!sorted.length) {
-          const e = document.createElement('div');
-          e.className = 'nh-nav-hint';
-          e.textContent = 'Use #tags inside notes and they appear here.';
-          navBody.appendChild(e);
+        const tagIco = () => {
+          if (state.settings.ui.navTagIcons === false) return '';
+          const iface = state.settings.ui.ifaceIcons && state.settings.ui.ifaceIcons.tag;
+          if (iface && iface.startsWith('svg:') && NH_ICON_LIB[iface.slice(4)]) return `<span class="nh-nav-ico" style="color:var(--nh-accent)">${NH_ICON_LIB[iface.slice(4)].replace('<svg', '<svg width="12" height="12"')}</span>`;
+          if (iface) return `<span class="nh-nav-ico">${escapeHtml(iface)}</span>`;
+          return '<span class="nh-nav-ico">🏷</span>';
+        };
+        const searchTag = (q) => { state.settings.ui.navSearch = true; navQ.value = q; renderNav(); };
+        const tagRow = (tag, n, depth) => {
+          const r2 = document.createElement('button');
+          r2.className = 'nh-nav-row nh-nav-note';
+          r2.style.setProperty('--depth', depth);
+          r2.innerHTML = `${tagIco()}<span class="nh-nav-title">#${escapeHtml(tag)}</span><span class="nh-nbadge">${n}</span>`;
+          r2.addEventListener('click', () => searchTag(`#${tag}`));
+          return r2;
+        };
+        const untaggedRow = (depth) => {
+          if (!state.settings.ui.navUntagged || !untagged) return null;
+          const r3 = document.createElement('button');
+          r3.className = 'nh-nav-row nh-nav-note';
+          r3.style.setProperty('--depth', depth);
+          r3.innerHTML = `<span class="nh-nav-ico">∅</span><span class="nh-nav-title">Untagged</span><span class="nh-nbadge">${untagged}</span>`;
+          r3.addEventListener('click', () => searchTag('is:untagged'));
+          return r3;
+        };
+        if (state.settings.ui.navTagsFolder) {
+          // "Tags as a collapsible folder" — folder row, tags nested inside
+          const fr = document.createElement('div');
+          const fcollapsed = navCollapsed('ft:__tags');
+          fr.className = 'nh-nav-row nh-nav-fold' + (fcollapsed ? ' collapsed' : '');
+          fr.style.setProperty('--depth', 0);
+          fr.innerHTML = `<span class="nh-nav-chev">${ICONS.chev}</span>${tagIco()}<span class="nh-nav-title">Tags</span><span class="nh-nbadge">${sorted.length}</span>`;
+          fr.addEventListener('click', () => navToggleCollapse('ft:__tags'));
+          navBody.appendChild(fr);
+          if (!fcollapsed) {
+            for (const [tag, n] of sorted.slice(0, 60)) navBody.appendChild(tagRow(tag, n, 1));
+            const ur = untaggedRow(1);
+            if (ur) navBody.appendChild(ur);
+          }
+        } else {
+          if (!sorted.length && !untagged) {
+            const e = document.createElement('div');
+            e.className = 'nh-nav-hint';
+            e.textContent = 'Use #tags inside notes and they appear here.';
+            navBody.appendChild(e);
+          }
+          const wrap = document.createElement('div');
+          wrap.className = 'nh-nav-tagswrap';
+          for (const [tag, n] of sorted.slice(0, 60)) {
+            const chip = document.createElement('button');
+            chip.className = 'nh-tag nh-nav-tag';
+            chip.innerHTML = `${tagIco().replace('nh-nav-ico', 'nh-nav-ico nh-tag-ico')}#${escapeHtml(tag)} (${n})`;
+            chip.addEventListener('click', () => searchTag(`#${tag}`));
+            wrap.appendChild(chip);
+          }
+          navBody.appendChild(wrap);
+          const ur = untaggedRow(0);
+          if (ur) navBody.appendChild(ur);
         }
-        const wrap = document.createElement('div');
-        wrap.className = 'nh-nav-tagswrap';
-        for (const [tag, n] of sorted.slice(0, 60)) {
-          const chip = document.createElement('button');
-          chip.className = 'nh-tag nh-nav-tag';
-          chip.textContent = `#${tag} (${n})`;
-          chip.addEventListener('click', () => {
-            state.settings.ui.navSearch = true;
-            navQ.value = `#${tag}`;
-            renderNav();
-          });
-          wrap.appendChild(chip);
-        }
-        navBody.appendChild(wrap);
       }
     }
   }
@@ -2893,11 +3079,24 @@ export function setup(ctx) {
   });
   navRoot.querySelector('.nh-nav-exp').addEventListener('click', () => {
     const list = state.settings.ui.collapsed || (state.settings.ui.collapsed = []);
-    const anyFoldCollapsed = list.some((k) => k.startsWith('ft:'));
-    if (anyFoldCollapsed) {
-      state.settings.ui.collapsed = list.filter((k) => !k.startsWith('ft:'));
+    const scopeAll = state.settings.ui.navCollapseScope === 'all';
+    const hits = (k) => k.startsWith('ft:') || (scopeAll && k.startsWith('nav:'));
+    const anyCollapsed = list.some(hits);
+    if (anyCollapsed) {
+      state.settings.ui.collapsed = list.filter((k) => !hits(k));
     } else {
-      for (const f of state.index.folders) if (!list.includes('ft:' + f.id)) list.push('ft:' + f.id);
+      // keep the open note's branch expanded when asked
+      const keep = new Set();
+      if (state.settings.ui.navKeepSelected) {
+        const meta = metaOf(state.currentId);
+        let pid = meta && meta.folderId, hops = 0;
+        while (pid && hops++ < 12) {
+          keep.add('ft:' + pid);
+          pid = ((state.index.folders || []).find((f) => f.id === pid) || {}).parentId || null;
+        }
+      }
+      for (const f of state.index.folders) if (!keep.has('ft:' + f.id) && !list.includes('ft:' + f.id)) list.push('ft:' + f.id);
+      if (scopeAll) for (const k of Object.keys(NAV_SECTIONS)) if (!list.includes('nav:' + k)) list.push('nav:' + k);
     }
     saveSettingsSoon();
     renderNav();
@@ -3299,6 +3498,168 @@ export function setup(ctx) {
   const uiTheme = settingsWrap.querySelector('.nh-ui-theme');
   // the Halo's controls live at the top of Settings — one cozy home for everything
   settingsWrap.querySelector('.nh-sbody').prepend(haloRoot);
+
+  /* ================= 2.1 settings cards: Editor / Navigator / Trash ================= */
+  function prefSwitch(label, desc, get, set, after) {
+    const row = document.createElement('div');
+    row.className = 'nh-field';
+    row.innerHTML = `<div><label>${escapeHtml(label)}</label>${desc ? `<div class="nh-desc">${escapeHtml(desc)}</div>` : ''}</div>`;
+    const wrap = document.createElement('span');
+    wrap.className = 'nh-switch';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!get();
+    const track = document.createElement('span');
+    track.className = 'nh-track';
+    wrap.append(cb, track);
+    row.appendChild(wrap);
+    cb.addEventListener('change', () => { set(cb.checked); saveSettingsSoon(); applyEditorPrefs(); renderNavIfActive(); if (after) after(); });
+    return row;
+  }
+  function prefSlider(label, desc, get, set, min, max, step, fmt) {
+    const row = document.createElement('div');
+    row.className = 'nh-field';
+    row.innerHTML = `<div><label>${escapeHtml(label)}</label>${desc ? `<div class="nh-desc">${escapeHtml(desc)}</div>` : ''}</div>`;
+    const box = document.createElement('div');
+    box.className = 'nh-slider';
+    const input = document.createElement('input');
+    input.type = 'range'; input.min = min; input.max = max; input.step = step; input.value = String(get());
+    const out = document.createElement('output');
+    out.textContent = (fmt || ((v) => String(v)))(get());
+    box.append(input, out);
+    row.appendChild(box);
+    input.addEventListener('input', () => {
+      const v = Number(input.value);
+      set(v);
+      out.textContent = (fmt || ((x) => String(x)))(v);
+      saveSettingsSoon(); applyEditorPrefs(); renderNavIfActive();
+    });
+    return row;
+  }
+  function prefSelect(label, desc, get, set, options) {
+    const row = document.createElement('div');
+    row.className = 'nh-field';
+    row.innerHTML = `<div><label>${escapeHtml(label)}</label>${desc ? `<div class="nh-desc">${escapeHtml(desc)}</div>` : ''}</div>`;
+    const sel = document.createElement('select');
+    sel.className = 'nh-sel';
+    for (const [val, text] of options) {
+      const o = document.createElement('option');
+      o.value = val; o.textContent = text;
+      sel.appendChild(o);
+    }
+    sel.value = String(get());
+    row.appendChild(sel);
+    sel.addEventListener('change', () => { set(sel.value); saveSettingsSoon(); applyEditorPrefs(); renderNavIfActive(); });
+    return row;
+  }
+  function prefText(label, desc, get, set, placeholder) {
+    const row = document.createElement('div');
+    row.className = 'nh-field';
+    row.innerHTML = `<div><label>${escapeHtml(label)}</label>${desc ? `<div class="nh-desc">${escapeHtml(desc)}</div>` : ''}</div>`;
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.className = 'nh-sel';
+    inp.style.maxWidth = '140px';
+    inp.value = get() || '';
+    inp.placeholder = placeholder || '';
+    row.appendChild(inp);
+    inp.addEventListener('change', () => { set(inp.value.trim()); saveSettingsSoon(); applyEditorPrefs(); });
+    return row;
+  }
+
+  const E2 = () => state.settings.editor;
+  const U2 = () => state.settings.ui;
+
+  const editorCard = document.createElement('div');
+  editorCard.className = 'nh-card';
+  editorCard.innerHTML = '<h3>⌨ Editor</h3><div class="nh-sub">How writing looks and behaves — every toggle applies instantly.</div>';
+  editorCard.append(
+    prefSwitch('Open new notes in new tab', 'Off: opening a note replaces the current tab like a pager.', () => E2().newTabOnCreate, (v) => { E2().newTabOnCreate = v; }),
+    prefSelect('Default view for new tabs', 'A brand-new tab opens in this mode.', () => E2().defaultView, (v) => { E2().defaultView = v; }, [['write', '✍ Live preview'], ['read', '📖 Reading'], ['source', '⌨ Source']]),
+    prefSwitch('Show editing mode in header', 'The ✍/📖/⌨ group above the editor.', () => E2().showMode, (v) => { E2().showMode = v; }),
+    prefSwitch('Readable line length', 'Limit how wide text runs — long paragraphs get comfier.', () => E2().readableLength, (v) => { E2().readableLength = v; }),
+    prefSwitch('Strict line breaks', 'On: single line breaks collapse in reading view (markdown spec).', () => E2().strictBreaks, (v) => { E2().strictBreaks = v; }, () => renderPreview()),
+    prefSwitch('Fold headings (reading)', 'Tap a heading to fold everything under it.', () => E2().foldHeading, (v) => { E2().foldHeading = v; }),
+    prefSwitch('Fold nested lists (reading)', 'Tap a list item to fold its children.', () => E2().foldIndent, (v) => { E2().foldIndent = v; }),
+    prefSwitch('Line numbers', 'Gutter numbers in ⌨ Source view.', () => E2().lineNumbers, (v) => { E2().lineNumbers = v; }),
+    prefSwitch('Indentation guides (editor)', 'Faint rails behind nested lists.', () => E2().guidesEditor, (v) => { E2().guidesEditor = v; }),
+    prefSwitch('Right-to-left (RTL)', 'Flip editing & reading direction.', () => E2().rtl, (v) => { E2().rtl = v; }),
+    prefSlider('Editor line height', '1.65 is the Lumiverse default.', () => E2().lineHeight, (v) => { E2().lineHeight = v; }, 1.2, 2.2, 0.05, (v) => v.toFixed(2)),
+    prefSwitch('Spellcheck', 'Browser spellchecker on editor surfaces.', () => E2().spellcheck, (v) => { E2().spellcheck = v; }),
+    prefText('Spellcheck languages', 'BCP-47 codes, comma-separated: e.g. "en, tl, ja".', () => E2().spellLang, (v) => { E2().spellLang = v; }, 'en'),
+    prefSwitch('Auto-pair brackets (source)', 'Typing ( [ { " \' ` closes itself.', () => E2().autoPair, (v) => { E2().autoPair = v; }),
+    prefSwitch('Smart lists (source)', 'Enter continues -, 1. and - [ ] markers; Enter on an empty item drops it.', () => E2().smartLists, (v) => { E2().smartLists = v; }),
+    prefSwitch('Indent using tabs', 'Off: Tab inserts spaces instead.', () => E2().indentTabs, (v) => { E2().indentTabs = v; }),
+    prefSlider('Indent visual width', 'Spaces a tab renders as.', () => E2().indentWidth, (v) => { E2().indentWidth = v; }, 2, 8, 1, (v) => `${v}sp`),
+  );
+
+  const navCard = document.createElement('div');
+  navCard.className = 'nh-card';
+  navCard.innerHTML = '<h3>🗂 Navigator & File Tree</h3><div class="nh-sub">Everything from your File Tree spec — collapse logic, counters, icons, sections.</div>';
+  const C = () => state.settings.ui.navCounters;
+  navCard.append(
+    prefSwitch('Expand on selection', 'Opening a note unfolds its folder chain.', () => U2().navExpandSelect, (v) => { U2().navExpandSelect = v; }),
+    prefSwitch('One expanded branch', 'Opening a folder folds its siblings.', () => U2().navOneBranch, (v) => { U2().navOneBranch = v; }),
+    prefSelect('Expand/collapse all affects', 'What the ⇅ button touches.', () => U2().navCollapseScope, (v) => { U2().navCollapseScope = v; }, [['folders', 'Folders only'], ['all', 'All sections']]),
+    prefSwitch('Keep selected expanded', 'Collapsing keeps the open note’s branch out.', () => U2().navKeepSelected, (v) => { U2().navKeepSelected = v; }),
+    prefSwitch('Spring-loaded folders', 'Dragging over a folder opens it after a beat.', () => U2().navSpring, (v) => { U2().navSpring = v; }),
+    prefSwitch('Apply color to icons only', 'Off: custom colors tint text labels too.', () => U2().navColorIconsOnly, (v) => { U2().navColorIconsOnly = v; }),
+    prefSwitch('Show Shortcuts section', '', () => U2().navShowShortcuts, (v) => { U2().navShowShortcuts = v; }),
+    prefSwitch('Icons in Shortcuts & Recent', '', () => U2().navShortcutIcons, (v) => { U2().navShortcutIcons = v; }),
+    prefSwitch('Show Recent section', '', () => U2().navShowRecent, (v) => { U2().navShowRecent = v; }),
+    prefSlider('Recent files count', 'How many live there.', () => U2().navRecentCount, (v) => { U2().navRecentCount = v; }, 1, 9, 1, (v) => `${v}`),
+    prefSwitch('Show folder icons', '', () => U2().navShowFolderIcons, (v) => { U2().navShowFolderIcons = v; }),
+    prefSwitch('Indent guides (file tree)', 'Vertical rails between levels.', () => U2().navGuides, (v) => { U2().navGuides = v; }),
+    prefSwitch('Show Tags section', '', () => U2().navShowTags, (v) => { U2().navShowTags = v; }),
+    prefSwitch('Show tag icons', '', () => U2().navTagIcons, (v) => { U2().navTagIcons = v; }),
+    prefSwitch('Tags as a folder', 'Render tags like a collapsible folder instead of chips.', () => U2().navTagsFolder, (v) => { U2().navTagsFolder = v; }),
+    prefSwitch('Show “Untagged” item', 'A shortcut listing notes with no tags.', () => U2().navUntagged, (v) => { U2().navUntagged = v; }),
+  );
+  const ctrTitle = document.createElement('h3');
+  ctrTitle.textContent = 'Counter badges';
+  ctrTitle.style.marginTop = '10px';
+  navCard.append(
+    ctrTitle,
+    prefSwitch('Words — files', '', () => C().wf, (v) => { C().wf = v; }),
+    prefSwitch('Words — folders (sum)', '', () => C().wF, (v) => { C().wF = v; }),
+    prefSwitch('Characters — files', '', () => C().cf, (v) => { C().cf = v; }),
+    prefSwitch('Characters — folders (sum)', '', () => C().cF, (v) => { C().cF = v; }),
+    prefSwitch('Tokens — files', '', () => C().tf, (v) => { C().tf = v; }),
+    prefSwitch('Tokens — folders (sum)', '', () => C().tF, (v) => { C().tF = v; }),
+    prefSwitch('Newlines — files', '', () => C().nf, (v) => { C().nf = v; }),
+  );
+  const ifaceBtn = document.createElement('button');
+  ifaceBtn.className = 'nh-btn';
+  ifaceBtn.innerHTML = '🧩 Interface icons…';
+  ifaceBtn.title = 'Default icons for folders, notes and tags';
+  ifaceBtn.addEventListener('click', async (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const { selectedKey } = await ctx.ui.showContextMenu({
+      position: { x: rect.left, y: rect.bottom + 6 },
+      items: [
+        { key: 'folder', label: '📁 Default folder icon…' },
+        { key: 'note', label: '📝 Default note icon…' },
+        { key: 'tag', label: '🏷 Tag icon…' },
+      ],
+    });
+    if (!selectedKey) return;
+    const picked = await pickIconFlow(rect.left, rect.bottom + 6, state.settings.ui.ifaceIcons[selectedKey] || '', { allowImage: false });
+    if (picked !== null) {
+      state.settings.ui.ifaceIcons[selectedKey] = picked;
+      saveSettingsSoon(); renderNavIfActive(); renderList();
+    }
+  });
+  navCard.appendChild(ifaceBtn);
+
+  const trashCard = document.createElement('div');
+  trashCard.className = 'nh-card';
+  trashCard.innerHTML = '<h3>🗑 Delete & trash</h3><div class="nh-sub">How merciful the delete button is.</div>';
+  trashCard.append(
+    prefSwitch('Confirm before deleting', 'Two-tap delete everywhere — no accidents.', () => E2().confirmDelete, (v) => { E2().confirmDelete = v; }),
+    prefSelect('Deleted files go…', '“Trash folder” moves notes into a 📂 Trash folder you create once; delete from there to really erase.', () => E2().trashMode, (v) => { E2().trashMode = v; }, [['permanent', 'Gone forever (default)'], ['trash-folder', 'Into a 🗑 Trash folder']]),
+  );
+
+  settingsWrap.querySelector('.nh-sbody').append(editorCard, navCard, trashCard);
+
   const uiCss = settingsWrap.querySelector('.nh-cssbox');
   const uiSliders = {
     opacity: settingsWrap.querySelector('.nh-ui-opacity'),
@@ -3714,11 +4075,27 @@ export function setup(ctx) {
     if (!state.ws) return;
     let g = wsFindGroup(state.ws.layout, state.ws.focusGid) || wsFirstGroup(state.ws.layout);
     state.ws.focusGid = g.gid;
-    if (!g.tabs.some((t) => t.noteId === noteId)) g.tabs.push({ noteId, pinned: false });
+    let fresh = false;
+    if (!g.tabs.some((t) => t.noteId === noteId)) {
+      fresh = true;
+      // "Open new notes in new tab" OFF → swap the current tab's note in place
+      const replace = !state._forceTab && state.settings.editor.newTabOnCreate === false;
+      const cur = replace ? g.tabs.findIndex((t) => t.noteId === g.activeId && !t.pinned) : -1;
+      if (cur >= 0) g.tabs[cur] = { noteId, pinned: g.tabs[cur].pinned };
+      else g.tabs.push({ noteId, pinned: false });
+    }
     g.activeId = noteId;
     histPush(g.gid, noteId);
     persistWs();
     renderTabs();
+    if (fresh) state._freshTabView = state.settings.editor.defaultView || null; // openNote applies it
+  }
+
+  /* "Open in new tab" — always spawns a fresh tab, even if the note has one */
+  function openInNewTabFlow(noteId) {
+    state._forceTab = true;
+    openModal();
+    openNote(noteId).finally(() => { state._forceTab = false; });
   }
 
   function noteIconHtml(meta, size = 13) {
@@ -3730,6 +4107,11 @@ export function setup(ctx) {
       if (svg) return `<span class="nh-nico" style="color:${color}">${svg.replace('<svg', `<svg width="${size}" height="${size}"`)}</span>`;
     }
     if (icon) return `<span class="nh-nico">${escapeHtml(icon)}</span>`;
+    const iface = state.settings?.ui?.ifaceIcons?.note || '';
+    if (iface.startsWith('svg:') && NH_ICON_LIB[iface.slice(4)]) {
+      return `<span class="nh-nico" style="color:${color}">${NH_ICON_LIB[iface.slice(4)].replace('<svg', `<svg width="${size}" height="${size}"`)}</span>`;
+    }
+    if (iface) return `<span class="nh-nico">${escapeHtml(iface)}</span>`;
     return '';
   }
 
@@ -3880,6 +4262,42 @@ export function setup(ctx) {
   }
 
   const paneCache = new Map(); // noteId+updatedAt -> html
+
+  function moveTabToGroup(d, group) {
+    if (d.gid === group.gid) return;
+    const from = wsFindGroup(state.ws.layout, d.gid);
+    const tab = from && from.tabs.find((t) => t.noteId === d.noteId);
+    if (!tab) return;
+    from.tabs = from.tabs.filter((t) => t.noteId !== d.noteId);
+    if (from.activeId === d.noteId) from.activeId = (from.tabs[0] || {}).noteId || null;
+    group.tabs.push(tab);
+    group.activeId = tab.noteId;
+    persistWs(); buildWs(); renderTabs();
+  }
+
+  // spec: dragging a tab to the BOTTOM of another pane splits it downward
+  function paneTabDrop(e, group) {
+    try {
+      const d = JSON.parse(e.dataTransfer.getData('text/nh-tab'));
+      const rect = e.currentTarget.getBoundingClientRect();
+      const frac = (e.clientY - rect.top) / Math.max(1, rect.height);
+      if (frac > 0.55) {
+        const gidNew = wsNewGid();
+        state.ws.layout = wsSplit(state.ws.layout, group.gid, 'col', gidNew, d.noteId);
+        const from = wsFindGroup(state.ws.layout, d.gid);
+        if (from && d.gid !== group.gid) {
+          from.tabs = from.tabs.filter((t) => t.noteId !== d.noteId);
+          if (from.activeId === d.noteId) from.activeId = (from.tabs[0] || {}).noteId || null;
+        }
+        state.ws.focusGid = gidNew;
+        persistWs(); buildWs(); renderTabs();
+        if (d.noteId !== state.currentId) void openNote(d.noteId);
+        toast('info', 'Dropped into a fresh split ↕');
+      } else {
+        moveTabToGroup(d, group);
+      }
+    } catch (_) { /* noop */ }
+  }
   function buildGroupFrame(group) {
     const focused = group.gid === (state.ws && state.ws.focusGid);
     const fr = document.createElement('div');
@@ -3914,15 +4332,7 @@ export function setup(ctx) {
       e.preventDefault(); strip.classList.remove('nh-drop');
       try {
         const d = JSON.parse(e.dataTransfer.getData('text/nh-tab'));
-        if (d.gid === group.gid) return;
-        const from = wsFindGroup(state.ws.layout, d.gid);
-        const tab = from && from.tabs.find((t) => t.noteId === d.noteId);
-        if (!tab) return;
-        from.tabs = from.tabs.filter((t) => t.noteId !== d.noteId);
-        if (from.activeId === d.noteId) from.activeId = (from.tabs[0] || {}).noteId || null;
-        group.tabs.push(tab);
-        group.activeId = tab.noteId;
-        persistWs(); buildWs(); renderTabs();
+        moveTabToGroup(d, group);
       } catch (_) { /* noop */ }
     });
     const pane = document.createElement('div');
@@ -3946,6 +4356,14 @@ export function setup(ctx) {
       pane.innerHTML = '<div class="nh-pane-empty">Nothing pinned here.<br>Drop a tab onto this pane, or click a note with the pane focused.</div>';
     }
     pane.addEventListener('click', () => void focusGroup(group.gid));
+    pane.addEventListener('dragover', (e) => {
+      if (e.dataTransfer.types.includes('text/nh-tab')) { e.preventDefault(); pane.classList.add('nh-drop'); }
+    });
+    pane.addEventListener('dragleave', () => pane.classList.remove('nh-drop'));
+    pane.addEventListener('drop', (e) => {
+      e.preventDefault(); pane.classList.remove('nh-drop');
+      paneTabDrop(e, group);
+    });
     fr.append(strip, pane);
     return fr;
   }
@@ -4124,8 +4542,9 @@ export function setup(ctx) {
         { key: 'rename', label: '✏️ Rename' },
         { key: 'dup', label: '📑 Duplicate (sequential name)' },
         { key: 'move', label: '📁 Move note to…' },
-        { key: 'export', label: '⬇ Export (.md)' },
+        { key: 'export', label: '⬇ Export as…' },
         { key: 'find', label: '🔍 Find in note…' },
+        { key: 'replace', label: '⇄ Replace…' },
         { key: 'd2', label: '', type: 'divider' },
         { key: 'del', label: '🗑 Delete note', danger: true },
       ],
@@ -4138,8 +4557,27 @@ export function setup(ctx) {
     else if (selectedKey === 'split-d') splitCurrent('col');
     else if (selectedKey === 'rename') { titleInput.focus(); titleInput.select(); }
     else if (selectedKey === 'dup') { try { await duplicateNoteSequential(meta); } catch (e) { toast('error', e.message); } }
-    else if (selectedKey === 'export') exportNoteMarkdown(meta);
+    else if (selectedKey === 'export') {
+      const sub = await ctx.ui.showContextMenu({
+        position: { x: Math.max(12, rect.right - 220), y: rect.bottom + 6 },
+        items: [
+          { key: 'md', label: '⬇ Markdown (.md)' },
+          { key: 'txt', label: '⬇ Plain text (.txt)' },
+        ],
+      });
+      if (sub.selectedKey === 'md') exportNoteMarkdown(meta);
+      else if (sub.selectedKey === 'txt') {
+        try {
+          const { note } = await rpc('get_note', { id: meta.id });
+          if (note) {
+            downloadText(safeFilename(meta.title, 'txt'), note.content, 'text/plain');
+            toast('success', 'Exported as plain .txt');
+          }
+        } catch (err) { toast('error', err.message); }
+      }
+    }
     else if (selectedKey === 'find') openFind(true);
+    else if (selectedKey === 'replace') { openFind(false); replaceIn.focus(); }
     else if (selectedKey === 'del') deleteNote(meta.id);
     else if (selectedKey === 'move') {
       const sub = await ctx.ui.showContextMenu({
@@ -4245,6 +4683,130 @@ export function setup(ctx) {
     }
   });
 
+
+  /* ==================================================== */
+  /* 2.1 EXTENSION SETTINGS — editor behaviour & display   */
+  /* ==================================================== */
+  function applyEditorPrefs() {
+    const e = state.settings.editor;
+    const u = state.settings.ui;
+    modeGroupEl.style.display = e.showMode === false ? 'none' : '';
+    preview.spellcheck = !!e.spellcheck;
+    sourceEl.spellcheck = !!e.spellcheck;
+    try { preview.lang = e.spellLang || ''; sourceEl.lang = e.spellLang || ''; } catch (_) {}
+    canvas.classList.toggle('nh-rll', !!e.readableLength);
+    canvas.classList.toggle('nh-guides-ed', !!e.guidesEditor);
+    canvas.classList.toggle('nh-rtl', !!e.rtl);
+    modalEl.style.setProperty('--nh-editor-lh', String(e.lineHeight || 1.65));
+    sourceEl.style.tabSize = String(e.indentWidth || 4);
+    gutterEl.style.display = e.lineNumbers ? '' : 'none';
+    navBody.classList.toggle('nh-guides-tree', u.navGuides !== false);
+    navBody.classList.toggle('nh-color-labels', u.navColorIconsOnly === false);
+    syncGutter();
+  }
+
+  function syncGutter() {
+    if (!state.settings.editor.lineNumbers) { gutterEl.textContent = ''; return; }
+    const lines = (sourceEl.value || '').split('\n').length;
+    let s = '';
+    for (let i = 1; i <= lines; i++) s += i + '\n';
+    gutterEl.textContent = s;
+    gutterEl.scrollTop = sourceEl.scrollTop;
+  }
+  sourceEl.addEventListener('scroll', () => { gutterEl.scrollTop = sourceEl.scrollTop; });
+  sourceEl.addEventListener('input', syncGutter);
+
+  /* smart source-mode keys: Tab indent, auto-pair, smart lists */
+  const NH_PAIRS = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'", '`': '`' };
+  sourceEl.addEventListener('keydown', (e) => {
+    const ed = state.settings.editor;
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const piece = ed.indentTabs ? '\t' : ' '.repeat(Math.max(1, ed.indentWidth || 4));
+      const s = sourceEl.selectionStart, en = sourceEl.selectionEnd;
+      if (s === en) sourceEl.setRangeText(piece, s, en, 'end');
+      else {
+        const start = sourceEl.value.lastIndexOf('\n', s - 1) + 1;
+        const chunk = sourceEl.value.slice(start, en).split('\n').map((l) => piece + l).join('\n');
+        sourceEl.setRangeText(chunk, start, en, 'end');
+      }
+      sourceEl.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
+    if (ed.autoPair && NH_PAIRS[e.key] && !e.ctrlKey && !e.metaKey) {
+      const s = sourceEl.selectionStart, en = sourceEl.selectionEnd;
+      const close = NH_PAIRS[e.key];
+      if (s === en && close !== e.key && sourceEl.value[s] === close) { sourceEl.setSelectionRange(s + 1, s + 1); e.preventDefault(); return; }
+      e.preventDefault();
+      const sel = sourceEl.value.slice(s, en);
+      sourceEl.setRangeText(e.key + sel + close, s, en, sel ? 'end' : 'start');
+      if (!sel) sourceEl.setSelectionRange(s + 1, s + 1);
+      else sourceEl.setSelectionRange(s + 1, en + 1);
+      sourceEl.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
+    if (e.key === 'Enter' && ed.smartLists && !e.shiftKey && !e.ctrlKey) {
+      const v = sourceEl.value, s = sourceEl.selectionStart;
+      const lineStart = v.lastIndexOf('\n', s - 1) + 1;
+      const line = v.slice(lineStart, s);
+      const m = line.match(/^(\s*)((?:[-*+]|\d+\.)\s+(?:\[[ x]\]\s+)?)/);
+      if (m) {
+        const [, indent, marker] = m;
+        e.preventDefault();
+        if (line.trim() === marker.trim()) {
+          // empty item → drop the marker, leave a clean newline
+          sourceEl.setRangeText('', lineStart, s, 'end');
+          sourceEl.setRangeText('\n', lineStart, lineStart, 'end');
+          sourceEl.setSelectionRange(lineStart + 1, lineStart + 1);
+        } else {
+          let next = marker.replace(/^\d+/, (d) => String(+d + 1)).replace(/\[[ x]\]/, '[ ]');
+          sourceEl.setRangeText('\n' + indent + next, s, sourceEl.selectionEnd, 'end');
+        }
+        sourceEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+  });
+
+  /* fold headings & indents — reading view, tap-to-collapse (session-scoped) */
+  preview.addEventListener('click', (e) => {
+    const ed = state.settings.editor;
+    if (state.settings.editor.mode !== 'read') return;
+    if (e.target.closest('input, a, button')) return;
+    const h = e.target.closest('h1,h2,h3,h4,h5,h6');
+    if (h && ed.foldHeading) {
+      const lvl = Number(h.tagName[1]);
+      const hide = !h.classList.contains('nh-folded');
+      h.classList.toggle('nh-folded', hide);
+      let sib = h.nextElementSibling;
+      while (sib) {
+        if (/^H[1-6]$/.test(sib.tagName) && Number(sib.tagName[1]) <= lvl) break;
+        sib.style.display = hide ? 'none' : '';
+        sib = sib.nextElementSibling;
+      }
+      return;
+    }
+    if (ed.foldIndent) {
+      const li = e.target.closest('li');
+      if (li) {
+        const sub = li.querySelector(':scope > ul, :scope > ol');
+        if (sub) {
+          const hide = sub.style.display !== 'none';
+          sub.style.display = hide ? 'none' : '';
+          li.classList.toggle('nh-folded-li', hide);
+        }
+      }
+    }
+  });
+
+  /* folder breadcrumb chip */
+  function refreshCrumb() {
+    const meta = metaOf(state.currentId);
+    const f = meta && meta.folderId ? (state.index.folders || []).find((x) => x.id === meta.folderId) : null;
+    crumbEl.textContent = `${f ? '📁' : '📥'} ${f ? f.name : 'Inbox'}`;
+    crumbEl.title = f ? `In folder “${f.name}” — long-press/right-click the 🗂 tree to organize` : 'Unfiled — lives in Inbox';
+    crumbEl.style.color = f && f.color ? f.color : 'var(--nh-muted)';
+  }
+
   /* ==================================================== */
   /* Boot                                                  */
   /* ==================================================== */
@@ -4270,6 +4832,33 @@ export function setup(ctx) {
       }
 
       if (!['write', 'read', 'source'].includes(state.settings.editor.mode)) state.settings.editor.mode = 'write';
+      // 2.1 editor preferences (merge keeps older saves alive)
+      state.settings.editor = {
+        mode: 'write', defaultView: 'write', newTabOnCreate: true, showMode: true,
+        readableLength: false, strictBreaks: false, foldHeading: false, foldIndent: false,
+        lineNumbers: false, guidesEditor: false, rtl: false, lineHeight: 1.65,
+        spellcheck: true, spellLang: 'en', autoPair: false, smartLists: false,
+        indentTabs: false, indentWidth: 4, confirmDelete: true, trashMode: 'permanent',
+        ...state.settings.editor,
+      };
+      state.settings.ui.navExpandSelect = state.settings.ui.navExpandSelect ?? true;
+      state.settings.ui.navOneBranch = state.settings.ui.navOneBranch ?? false;
+      state.settings.ui.navCollapseScope = state.settings.ui.navCollapseScope || 'folders';
+      state.settings.ui.navKeepSelected = state.settings.ui.navKeepSelected ?? false;
+      state.settings.ui.navSpring = state.settings.ui.navSpring ?? false;
+      state.settings.ui.navColorIconsOnly = state.settings.ui.navColorIconsOnly ?? true;
+      state.settings.ui.navShowShortcuts = state.settings.ui.navShowShortcuts ?? true;
+      state.settings.ui.navShortcutIcons = state.settings.ui.navShortcutIcons ?? true;
+      state.settings.ui.navShowRecent = state.settings.ui.navShowRecent ?? true;
+      state.settings.ui.navRecentCount = state.settings.ui.navRecentCount || 5;
+      state.settings.ui.navShowFolderIcons = state.settings.ui.navShowFolderIcons ?? true;
+      state.settings.ui.navGuides = state.settings.ui.navGuides ?? true;
+      state.settings.ui.navShowTags = state.settings.ui.navShowTags ?? true;
+      state.settings.ui.navTagIcons = state.settings.ui.navTagIcons ?? true;
+      state.settings.ui.navTagsFolder = state.settings.ui.navTagsFolder ?? false;
+      state.settings.ui.navUntagged = state.settings.ui.navUntagged ?? false;
+      state.settings.ui.navCounters = { wf: true, wF: true, cf: false, cF: false, tf: false, tF: false, nf: false, ...(state.settings.ui.navCounters || {}) };
+      state.settings.ui.ifaceIcons = { folder: '', note: '', tag: '', ...(state.settings.ui.ifaceIcons || {}) };
       wsInit(); // rebuild tabs/groups/splits from the saved layout
       canvas.classList.add(`nh-mode-${state.settings.editor.mode}`);
       modeBtns.forEach((b) => b.classList.toggle('is-active', b.dataset.mode === state.settings.editor.mode));
@@ -4296,6 +4885,7 @@ export function setup(ctx) {
         }
         wsNoteShown(resume.id);
         buildWs(); // seat the editor into the focused pane, panes render their own views
+        applyEditorPrefs();
         applyUi(); // positions/minimize apply AFTER structure exists
       }
       state.booted = true;
