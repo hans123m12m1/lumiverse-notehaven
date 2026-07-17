@@ -45,6 +45,8 @@ const UI_DEFAULTS = () => ({
   railWidth: 224,      // notes rail width in px
   modalW: 0,           // 0 → auto (CSS default); otherwise px
   modalH: 0,           // 0 → auto; otherwise px
+  bgImageId: '',       // custom background picture (an imageId); '' → none
+  bgDim: 0.85,         // veil opacity over the background so text stays readable
 });
 
 const DEFAULT_SETTINGS = () => ({

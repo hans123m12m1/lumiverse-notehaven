@@ -16,7 +16,7 @@
 /* ================================================================ */
 
 const NH_CSS = `
-  .nh-root, .nh-modal, .nh-floatnote {
+  .nh-root, .nh-modal {
     --nh-bg: var(--lumiverse-fill, #17161f);
     --nh-bg-2: var(--lumiverse-fill-subtle, rgba(255,255,255,0.045));
     --nh-border: var(--lumiverse-border, rgba(255,255,255,0.09));
@@ -43,17 +43,8 @@ const NH_CSS = `
     --nh-accent: var(--lumiverse-accent, #7c5ce0);
   }
 
-  .nh-root *, .nh-modal *, .nh-floatnote * { box-sizing: border-box; }
+  .nh-root *, .nh-modal * { box-sizing: border-box; }
 
-  /* ---- pinned mini note floating on screen ---- */
-  .nh-floatnote { width: 100%; height: 100%; display: flex; flex-direction: column; background: var(--nh-bg); color: var(--nh-text); border: 1px solid var(--nh-border); border-radius: 15px; overflow: hidden; box-shadow: 0 12px 34px rgba(0,0,0,.5); }
-  .nh-fn-head { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; padding: 8px 10px 7px; border-bottom: 1px solid var(--nh-border); background: color-mix(in srgb, var(--nh-accent) 12%, transparent); }
-  .nh-fn-pin { font-size: 12px; flex: 0 0 auto; }
-  .nh-fn-title { flex: 1; min-width: 0; font-weight: 700; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .nh-fn-btn { border: 0; background: transparent; color: var(--nh-muted); width: 24px; height: 24px; border-radius: 7px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; font-family: inherit; flex: 0 0 auto; }
-  .nh-fn-btn:hover { background: var(--nh-bg-2); color: var(--nh-text); }
-  .nh-fn-body { flex: 1; width: 100%; border: 0; outline: none; resize: none; background: transparent; color: var(--nh-text); font-family: inherit; font-size: 12.5px; line-height: 1.6; padding: 10px 12px; }
-  .nh-fn-state { flex: 0 0 auto; padding: 4px 10px 6px; color: var(--nh-muted); font-size: 10px; text-align: right; opacity: .8; }
   .nh-root button, .nh-modal button { font-family: inherit; }
   .nh-scroll { scrollbar-width: thin; scrollbar-color: var(--nh-border) transparent; }
   .nh-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -760,6 +751,7 @@ export function setup(ctx) {
     lastHaloOpenAt: 0, // dedupe tap vs click open paths on the Halo
     imageCache: new Map(), // imageId -> dataUrl
     logoSrc: defaultLogoDataUrl(),
+    bgSrc: null,
     booted: false,
   };
 
@@ -1482,7 +1474,6 @@ export function setup(ctx) {
       items: [
         { key: 'rename', label: '✏️ Rename' },
         { key: 'pin', label: meta.pinned ? '📌 Unpin' : '📌 Pin to top' },
-        { key: 'float', label: '🪟 Pin on screen — mini window' },
         { key: 'move', label: '📁 Move to…' },
         { key: 'div1', label: '', type: 'divider' },
         ...colors.map(([hex, label]) => ({ key: `color:${hex}`, label, active: meta.color === hex })),
@@ -1501,8 +1492,6 @@ export function setup(ctx) {
       await rpc('set_meta', { id: meta.id, pinned: !meta.pinned });
       meta.pinned = !meta.pinned;
       renderList(); refreshPinBtn();
-    } else if (selectedKey === 'float') {
-      floatNote(meta);
     } else if (selectedKey === 'move') {
       const sub = await ctx.ui.showContextMenu({
         position: { x, y },
@@ -1537,90 +1526,7 @@ export function setup(ctx) {
   function refreshPinBtn() {
     const meta = metaOf(state.currentId);
     pinBtn.classList.toggle('is-active', !!meta?.pinned);
-    pinBtn.title = 'Pin — to list top, or onto your screen 📌';
-  }
-
-  /* ==================================================== */
-  /* Floating mini note — pin a note ON SCREEN and keep    */
-  /* chatting. Multitasking for PC *and* phone.            */
-  /* ==================================================== */
-
-  let floatNoteWidget = null;
-  let floatNoteId = null;
-  let floatNoteSaveSoon = null;
-
-  function closeFloatNote() {
-    if (floatNoteWidget) { try { floatNoteWidget.destroy(); } catch (_) { /* noop */ } }
-    floatNoteWidget = null;
-    floatNoteId = null;
-    floatNoteSaveSoon = null;
-  }
-  disposers.push(closeFloatNote);
-
-  async function floatNote(meta) {
-    closeFloatNote();
-    if (state.currentId === meta.id) { toast('info', 'This note is open in the editor — pin a different one instead'); return; }
-    try {
-      const { note } = await rpc('get_note', { id: meta.id });
-      if (!note) { toast('error', 'That note could not be read'); return; }
-      let w;
-      try {
-        w = ctx.ui.createFloatWidget({
-          width: 320,
-          height: 240,
-          initialPosition: { x: 20, y: Math.max(20, (window.innerHeight || 700) - 300) },
-          tooltip: `📌 ${meta.title} — pinned mini note (drag it around)`,
-          chromeless: true,
-          snapToEdge: false,
-        });
-      } catch (err) {
-        toast('error', 'Floating windows need the ui_panels permission');
-        return;
-      }
-      const box = document.createElement('div');
-      box.className = 'nh-floatnote';
-      box.classList.toggle('nh-th-light', state.settings.ui.theme === 'light');
-      box.innerHTML =
-        `<div class="nh-fn-head"><span class="nh-fn-pin">📌</span><span class="nh-fn-title">${escapeHtml(note.title)}</span>` +
-        `<button class="nh-fn-btn nh-fn-open" title="Open in Notehaven">⤢</button><button class="nh-fn-btn nh-fn-close" title="Save & unpin">✕</button></div>` +
-        `<textarea class="nh-fn-body nh-scroll" spellcheck="true" placeholder="(empty note)"></textarea>` +
-        `<div class="nh-fn-state">ready · autosaves as you type</div>`;
-      w.root.appendChild(box);
-      floatNoteWidget = w;
-      floatNoteId = meta.id;
-
-      const ta = box.querySelector('.nh-fn-body');
-      const stateEl = box.querySelector('.nh-fn-state');
-      ta.value = note.content || '';
-
-      const saveNow = async () => {
-        stateEl.textContent = 'saving…';
-        try {
-          const { index } = await rpc('save_note', { id: floatNoteId, title: note.title, content: ta.value });
-          state.index = index;
-          renderList();
-          stateEl.textContent = `saved ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ✓`;
-        } catch (err) {
-          stateEl.textContent = 'note gone — closing';
-          setTimeout(closeFloatNote, 1200);
-        }
-      };
-      floatNoteSaveSoon = debounce(saveNow, 900);
-      ta.addEventListener('input', () => { stateEl.textContent = 'typing…'; floatNoteSaveSoon(); });
-
-      box.querySelector('.nh-fn-open').addEventListener('click', () => {
-        const id = floatNoteId;
-        closeFloatNote();
-        if (id) openModal(id);
-      });
-      box.querySelector('.nh-fn-close').addEventListener('click', async () => {
-        await saveNow().catch(() => {});
-        closeFloatNote();
-      });
-      toast('success', `📌 “${meta.title}” pinned on screen — chat & jot at once!`);
-    } catch (err) {
-      toast('error', err.message || 'Could not pin that note');
-    }
+    pinBtn.title = meta?.pinned ? 'Unpin from the list top' : 'Pin to the top of the list 📌';
   }
 
   function renderStatus() {
@@ -1823,7 +1729,6 @@ export function setup(ctx) {
     try {
       const { note } = await rpc('get_note', { id });
       if (!note) return;
-      if (floatNoteId === id) closeFloatNote(); // one editor per note — the modal takes over
       state.currentId = id;
       state.current = { id, title: note.title, content: note.content };
       titleInput.value = note.title;
@@ -1894,22 +1799,22 @@ export function setup(ctx) {
     if (note) { await openNote(note.id); setTimeout(() => { titleInput.focus(); titleInput.select(); }, 80); }
   });
 
+  // 📌 one click = pinned. No menu, no dismiss-rejection dead end — and any
+  // backend error now surfaces as a toast instead of dying silently (the 1.11 bug).
   pinBtn.addEventListener('click', async () => {
     const meta = metaOf(state.currentId);
-    if (!meta) return;
-    const rect = pinBtn.getBoundingClientRect();
-    const { selectedKey } = await ctx.ui.showContextMenu({
-      position: { x: Math.max(12, rect.left - 150), y: rect.bottom + 6 },
-      items: [
-        { key: 'top', label: meta.pinned ? '📌 Unpin from list top' : '📌 Pin to top of the list', active: !!meta.pinned },
-        { key: 'float', label: '🪟 Pin on screen — mini window (multitask!)' },
-      ],
-    });
-    if (selectedKey === 'top') {
+    if (!meta || pinBtn.dataset.busy) return; // ignore double-taps while saving
+    pinBtn.dataset.busy = '1';
+    try {
       await rpc('set_meta', { id: meta.id, pinned: !meta.pinned });
       meta.pinned = !meta.pinned;
       renderList(); refreshPinBtn();
-    } else if (selectedKey === 'float') floatNote(meta);
+      toast('success', meta.pinned ? 'Pinned to the top of the list 📌' : 'Unpinned');
+    } catch (e) {
+      toast('error', `Pin failed: ${e?.message || e}`); // no more silent fails
+    } finally {
+      delete pinBtn.dataset.busy;
+    }
   });
 
   let delArmed = null;
@@ -2596,6 +2501,14 @@ export function setup(ctx) {
               <span class="nh-colorwrap"><input type="color" class="nh-color nh-ui-accent" value="#b28cff"><button class="nh-btn nh-ui-accent-reset">Auto</button></span>
             </div>
             <div class="nh-field">
+              <div><label>Background image</label><div class="nh-desc">A picture behind your notes — the veil below keeps text readable.</div></div>
+              <span class="nh-colorwrap"><button class="nh-btn nh-ui-bg-upload">🖼 Upload</button><button class="nh-btn nh-ui-bg-clear" title="Remove background">✕</button></span>
+            </div>
+            <div class="nh-field">
+              <div><label>Background veil</label><div class="nh-desc">Higher = more solid · lower = more picture showing through.</div></div>
+              <div class="nh-slider"><input type="range" class="nh-ui-bgdim" min="0.3" max="0.98" step="0.01"><output></output></div>
+            </div>
+            <div class="nh-field">
               <div><label>Window opacity</label><div class="nh-desc">Make the notes window dreamy and see-through.</div></div>
               <div class="nh-slider"><input type="range" class="nh-ui-opacity" min="0.55" max="1" step="0.01"><output></output></div>
             </div>
@@ -2656,6 +2569,7 @@ export function setup(ctx) {
     font: settingsWrap.querySelector('.nh-ui-font'),
     radius: settingsWrap.querySelector('.nh-ui-radius'),
     rail: settingsWrap.querySelector('.nh-ui-rail'),
+    bgdim: settingsWrap.querySelector('.nh-ui-bgdim'),
   };
 
   let removeUiCss = null;
@@ -2696,6 +2610,20 @@ export function setup(ctx) {
     modalEl.style.width = showSheet && mw ? `${mw}px` : '';
     modalEl.style.height = showSheet && mh ? `${mh}px` : '';
 
+    // custom background picture — a theme-aware "veil" (color-mix of --nh-bg)
+    // sits on top so notes stay readable in dark AND light mode
+    if (state.bgSrc) {
+      const dim = Math.min(0.98, Math.max(0.3, u.bgDim == null ? 0.85 : u.bgDim));
+      const veil = `color-mix(in srgb, var(--nh-bg) ${Math.round(dim * 100)}%, transparent)`;
+      modalEl.style.backgroundImage = `linear-gradient(${veil}, ${veil}), url("${state.bgSrc}")`;
+      modalEl.style.backgroundSize = 'cover';
+      modalEl.style.backgroundPosition = 'center';
+    } else {
+      modalEl.style.backgroundImage = '';
+      modalEl.style.backgroundSize = '';
+      modalEl.style.backgroundPosition = '';
+    }
+
     if (removeUiCss) { removeUiCss(); removeUiCss = null; }
     if (u.customCSS && u.customCSS.trim()) removeUiCss = ctx.dom.addStyle(u.customCSS);
   }
@@ -2711,12 +2639,14 @@ export function setup(ctx) {
       [uiSliders.font, u.fontSize, (v) => `${v}px`],
       [uiSliders.radius, u.radius, (v) => `${v}px`],
       [uiSliders.rail, u.railWidth, (v) => `${v}px`],
+      [uiSliders.bgdim, u.bgDim == null ? 0.85 : u.bgDim, (v) => `${Math.round(v * 100)}% veil`],
     ];
     for (const [input, val, fmt] of pairs) {
       input.value = String(val);
       input.nextElementSibling.textContent = fmt(val);
     }
     uiCss.value = u.customCSS;
+    syncBgButtons();
   }
 
   function openSettings() {
@@ -2749,6 +2679,48 @@ export function setup(ctx) {
   bindSlider(uiSliders.font, 'fontSize', (v) => `${v}px`);
   bindSlider(uiSliders.radius, 'radius', (v) => `${v}px`);
   bindSlider(uiSliders.rail, 'railWidth', (v) => `${v}px`);
+  bindSlider(uiSliders.bgdim, 'bgDim', (v) => `${Math.round(v * 100)}% veil`);
+
+  /* ---------- background image upload / clear ---------- */
+  const bgUploadBtn = settingsWrap.querySelector('.nh-ui-bg-upload');
+  const bgClearBtn = settingsWrap.querySelector('.nh-ui-bg-clear');
+  function syncBgButtons() {
+    const has = !!state.settings.ui.bgImageId;
+    bgUploadBtn.textContent = has ? '🖼 Change' : '🖼 Upload';
+    bgClearBtn.style.display = has ? '' : 'none';
+  }
+  bgUploadBtn.addEventListener('click', async () => {
+    try {
+      const files = await ctx.uploads.pickFile({
+        accept: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'],
+        multiple: false,
+        maxSizeBytes: 12 * 1024 * 1024,
+      });
+      const file = files[0];
+      if (!file) return;
+      const mime = fileMime(file);
+      const dataUrl = /gif|apng/.test(mime)
+        ? bytesToDataUrl(file.bytes, mime) // keep gifs alive
+        : (await downscaleImage(file, 1920)) || bytesToDataUrl(file.bytes, mime);
+      const { imageId } = await uploadMedia(file.name, dataUrl);
+      const old = state.settings.ui.bgImageId;
+      state.settings.ui.bgImageId = imageId;
+      state.bgSrc = dataUrl;
+      if (old && old !== imageId) rpc('delete_image', { imageId: old }).catch(() => {});
+      saveSettingsSoon(); applyUi(); syncBgButtons();
+      toast('success', 'Background set — cozy in here 🖼✨');
+    } catch (e) {
+      toast('error', e?.message || 'Could not set that background');
+    }
+  });
+  bgClearBtn.addEventListener('click', () => {
+    const old = state.settings.ui.bgImageId;
+    state.settings.ui.bgImageId = '';
+    state.bgSrc = null;
+    if (old) rpc('delete_image', { imageId: old }).catch(() => {});
+    saveSettingsSoon(); applyUi(); syncBgButtons();
+  });
+  syncBgButtons();
 
   settingsWrap.querySelector('.nh-winsize-reset').addEventListener('click', () => {
     state.settings.ui.modalW = 0;
@@ -2853,10 +2825,16 @@ export function setup(ctx) {
       ]);
       state.settings = settings;
       // forward-compatible defaults for older saves (theme & collapsed arrive with 1.6)
-      state.settings.ui = { theme: 'auto', collapsed: [], ...state.settings.ui };
+      state.settings.ui = { theme: 'auto', collapsed: [], bgImageId: '', bgDim: 0.85, ...state.settings.ui };
       if (!Array.isArray(state.settings.ui.collapsed)) state.settings.ui.collapsed = [];
       state.index = index;
       if (dataUrl) state.logoSrc = dataUrl;
+      if (state.settings.ui.bgImageId) {
+        try {
+          const bg = await rpc('get_image', { imageId: state.settings.ui.bgImageId });
+          state.bgSrc = bg.dataUrl || null;
+        } catch (_) { state.bgSrc = null; }
+      }
 
       if (!['write', 'read'].includes(state.settings.editor.mode)) state.settings.editor.mode = 'write';
       canvas.classList.add(`nh-mode-${state.settings.editor.mode}`);
