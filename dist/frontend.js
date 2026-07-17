@@ -191,7 +191,7 @@ const NH_CSS = `
   .nh-toolbar .nh-sep { width: 1px; height: 18px; background: var(--nh-border); margin: 0 5px; flex: 0 0 auto; }
 
   .nh-canvas { flex: 1; display: flex; min-height: 0; }
-  .nh-surfacewrap { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto; }
+  .nh-surfacewrap { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; }
   .nh-preview { flex: 0 0 auto; padding: 14px 20px 44px; font-size: var(--nh-editor-fs, 13.5px); }
   .nh-preview:empty::before { content: 'Start writing… ✍️ images, [[links]] and ☑ checklists all render live as you type'; color: var(--nh-muted); font-size: 12.5px; }
   .nh-editor-surface { min-height: 100%; outline: none; -webkit-tap-highlight-color: transparent; }
@@ -259,6 +259,11 @@ const NH_CSS = `
 
   /* phones: bottom-anchored sheet, clear of the notch & home bar */
   @media (max-width: 560px) {
+    /* 2.1.7 — the chat behind the sheet stays alive: the dim is visual-only,
+       touches fall through so users can scroll the chat while writing */
+    .nh-overlay { pointer-events: none; }
+    .nh-overlay .nh-modal { pointer-events: auto; }
+    .nh-pane, .nh-list, .nh-surfacewrap, .nh-nav-body, .nh-sbody { -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
     .nh-overlay { padding: 0; align-items: flex-end; }
     .nh-modal { width: 100vw; height: 100vh; height: var(--nh-sheet-h, 100dvh); max-width: none; max-height: none; border-radius: 0; border: 0;
       padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
@@ -272,6 +277,21 @@ const NH_CSS = `
     .nh-statusbar { flex-wrap: wrap; row-gap: 4px; }
     .nh-toolbar { gap: 3px; row-gap: 5px; }
   }
+
+  /* phone scroll affordances: a scrollbar you can SEE and drag (2.1.9) */
+  @media (max-width: 760px), (pointer: coarse) {
+    .nh-pane, .nh-surfacewrap, .nh-list, .nh-nav-body, .nh-sbody { scrollbar-width: thin; scrollbar-color: var(--nh-border) transparent; }
+    .nh-pane::-webkit-scrollbar, .nh-surfacewrap::-webkit-scrollbar, .nh-list::-webkit-scrollbar, .nh-nav-body::-webkit-scrollbar, .nh-sbody::-webkit-scrollbar { width: 6px; }
+    .nh-pane::-webkit-scrollbar-thumb, .nh-surfacewrap::-webkit-scrollbar-thumb, .nh-list::-webkit-scrollbar-thumb, .nh-nav-body::-webkit-scrollbar-thumb, .nh-sbody::-webkit-scrollbar-thumb { background: var(--nh-border); border-radius: 99px; }
+    .nh-pane::-webkit-scrollbar-thumb:hover, .nh-surfacewrap::-webkit-scrollbar-thumb:hover { background: var(--nh-accent); }
+  }
+  /* ⤒ pill: one tap back to the top of a scrolled pane */
+  .nh-topbtn { position: absolute; right: 15px; bottom: 58px; z-index: 40; display: none; align-items: center; justify-content: center;
+    width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--nh-border);
+    background: var(--nh-bg-2); color: var(--nh-accent); font-size: 17px; cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0,0,0,.42); opacity: .94; touch-action: manipulation; }
+  .nh-topbtn.nh-show { display: flex; }
+  .nh-topbtn:active { transform: scale(.93); }
 
   /* topbar swipes sideways on narrow screens — one row, no cramped wrap (2.1.6) */
   @media (max-width: 760px) {
@@ -676,9 +696,12 @@ function fileMime(file) {
 
 /** Tap (tiny, no drag) + long-press helpers that survive host drag handlers */
 function addTapListener(el, onTap) {
-  let sx = 0, sy = 0, st = 0;
-  el.addEventListener('pointerdown', (e) => { sx = e.clientX; sy = e.clientY; st = Date.now(); }, { passive: true });
+  let sx = 0, sy = 0, st = 0, btn = 0;
+  el.addEventListener('pointerdown', (e) => { sx = e.clientX; sy = e.clientY; st = Date.now(); btn = e.button; }, { passive: true });
   el.addEventListener('pointerup', (e) => {
+    // 2.1.8 — only the primary button is a "tap". A right-click release is a
+    // clean no-move press too, and used to open the notepad behind the menu.
+    if (btn !== 0) return;
     const moved = Math.hypot(e.clientX - sx, e.clientY - sy);
     if (moved < 8 && Date.now() - st < 450) onTap(e);
   }, { passive: true });
@@ -687,6 +710,7 @@ function addTapListener(el, onTap) {
 function addLongPress(el, onPress) {
   let timer = null, sx = 0, sy = 0, fired = false;
   el.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return; // right/middle buttons never arm a long-press
     sx = e.clientX; sy = e.clientY; fired = false;
     clearTimeout(timer);
     timer = setTimeout(() => { fired = true; onPress({ x: sx, y: sy }); }, 520);
@@ -1090,6 +1114,28 @@ export function setup(ctx) {
   const wsMinBtn = overlayWrap.querySelector('.nh-ws-min');
   const wsFullBtn = overlayWrap.querySelector('.nh-ws-full');
   const mheadEl = overlayWrap.querySelector('.nh-mhead');
+
+  /* 2.1.9 — phone scroll helpers: styled slim scrollbars (CSS above) plus a
+     floating ⤒ pill that appears once any pane is scrolled, and hops it back
+     to the top so the header/toolbar are always a tap away. */
+  const nhTopBtn = document.createElement('button');
+  nhTopBtn.className = 'nh-topbtn';
+  nhTopBtn.type = 'button';
+  nhTopBtn.title = 'Back to top';
+  nhTopBtn.textContent = '⤒';
+  modalEl.appendChild(nhTopBtn);
+  const nhScrollers = () => [...modalEl.querySelectorAll('.nh-pane, .nh-surfacewrap')];
+  const syncTopBtn = () => {
+    nhTopBtn.classList.toggle('nh-show', nhScrollers().some((n) => (n.scrollTop || 0) > 160));
+  };
+  modalEl.addEventListener('scroll', (e) => {
+    if ((e.target?.classList?.contains && e.target.classList.contains('nh-pane')) || e.target?.className?.includes?.('nh-surfacewrap')) syncTopBtn();
+  }, true);
+  nhTopBtn.addEventListener('click', () => {
+    const target = nhScrollers().find((n) => (n.scrollTop || 0) > 4) || nhScrollers()[0];
+    try { target?.scrollTo({ top: 0, behavior: 'smooth' }); } catch { if (target) target.scrollTop = 0; }
+    setTimeout(syncTopBtn, 350);
+  });
 
   /* 2.1.5 — phone sheet: drag the grab pill to size 55%..100% of the screen,
      persisted per user; double-tap snaps back to full screen. Android and
@@ -3376,6 +3422,7 @@ export function setup(ctx) {
   function wireHaloDrag(el) {
     let drag = null;
     el.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) { drag = null; return; } // right-click is MENU business, never drag/open
       drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, st: Date.now(), ox: parseFloat(el.style.left) || 0, oy: parseFloat(el.style.top) || 0, moved: false };
       // NOTE: no setPointerCapture yet — capturing on touchstart makes some
       // mobile browsers swallow the tap's synthetic click entirely

@@ -16,6 +16,28 @@ No build step required — `dist/` is hand-written, dependency-free ES2022 and i
 
 ---
 
+## What's new in 2.1.9
+
+- **Phone scroll controls:** scroll regions inside the panel now show a slim,
+  visible, draggable scrollbar, and a floating **⤒ pill** appears once you've
+  scrolled — one tap hops straight back to the top (toolbar / title). Handy
+  on real phones and on emulator mice alike.
+- Small flex fix so a long note can never push the header rows off-screen.
+
+## What's new in 2.1.8
+
+- **Right-click on the Halo opens the menu — not the notepad.** The tap
+  detector now only counts the primary button, so a right-click release stops
+  reading as a "clean tap". No more notes window opening behind the menu,
+  and no more click-and-hold needed on PC (that's the phone gesture).
+
+## What's new in 2.1.7
+
+- **The chat stays scrollable behind the notes panel on phones.** Drag the
+  sheet down with the grab pill, then keep reading/scrolling your chat above
+  it while you jot notes — the dimmed backdrop no longer eats your touches.
+  (Inside the panel everything scrolls with native momentum as always.)
+
 ## What's new in 2.1.6
 
 - **Topbar swipes sideways on narrow screens** — the whole button row
