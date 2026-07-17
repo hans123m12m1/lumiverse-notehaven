@@ -16,6 +16,32 @@ No build step required — `dist/` is hand-written, dependency-free ES2022 and i
 
 ---
 
+## What's new in 2.1.6
+
+- **Topbar swipes sideways on narrow screens** — the whole button row
+  (history, list, minimize, fullscreen, theme, settings, New note, ⋯) is one
+  clean horizontally-scrolling line. The close ✕ is always a swipe away.
+
+## What's new in 2.1.5 — proper phone layout
+
+- **Notch/Dynamic-Island fix:** the phone sheet now respects
+  `env(safe-area-inset-top)`, so the header is no longer swallowed on notched
+  iPhones (and the home-indicator area is padded at the bottom).
+- **Adjustable sheet:** drag the grab pill at the top of the panel to size it
+  between 55% and 100% of the screen — your height is remembered. Double-tap
+  the pill to snap back to full screen. Same code covers Android.
+- The sheet is anchored to the **bottom** and gets rounded corners when
+  windowed, so the chat above stays peeking through.
+- Toolbar rows pack tighter on small screens.
+
+## What's new in 2.1.4
+
+- **Fixed: tapping the floating logo on phones now actually opens notes.**
+  The tap no longer relies on the synthetic `click` event (mobile browsers
+  often swallow it); a clean lift-without-move is the tap, and the pointer
+  capture waits until you really start dragging. The test suite simulates a
+  phone tap to prove the modal opens.
+
 ## What's new in 2.1.3 — the "it actually boots now" hotfix
 
 - **CRITICAL FIX:** v2.1.0–2.1.2 shipped a startup race — the Settings cards

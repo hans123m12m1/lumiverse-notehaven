@@ -244,6 +244,12 @@ const NH_CSS = `
   .nh-imgbox.nh-missing::before { content: '🖼 media missing'; color: var(--nh-muted); font-size: 11px; display: block; text-align: center; padding-top: 10px; }
   .nh-imgcap { color: var(--nh-muted); font-size: 11px; margin-top: 4px; }
 
+  /* phone sheet grab handle (visible only on phones) */
+  .nh-sheeth { display: none; flex: 0 0 auto; align-items: center; justify-content: center; height: 16px;
+    touch-action: none; cursor: ns-resize; margin-top: calc(env(safe-area-inset-top, 0px) * -1); }
+  .nh-sheeth::after { content: ''; width: 44px; height: 4.5px; border-radius: 99px; background: var(--nh-border); transition: background .15s, width .15s; }
+  .nh-sheeth.nh-grab::after, .nh-sheeth:active::after { background: var(--nh-accent); width: 58px; }
+
   /* narrow modal: rail slides over the editor */
   @media (max-width: 760px) {
     .nh-listwrap { position: absolute; z-index: 6; top: 0; bottom: 0; left: 0; background: var(--nh-bg); box-shadow: 10px 0 30px rgba(0,0,0,.4); width: min(240px, 78vw); }
@@ -251,14 +257,29 @@ const NH_CSS = `
     .nh-mhead .nh-mtitle span.nh-mt-text { display: none; }
   }
 
-  /* phones: take over the whole screen */
+  /* phones: bottom-anchored sheet, clear of the notch & home bar */
   @media (max-width: 560px) {
-    .nh-overlay { padding: 0; }
-    .nh-modal { width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none; border-radius: 0; border: 0; }
+    .nh-overlay { padding: 0; align-items: flex-end; }
+    .nh-modal { width: 100vw; height: 100vh; height: var(--nh-sheet-h, 100dvh); max-width: none; max-height: none; border-radius: 0; border: 0;
+      padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+    .nh-modal.nh-sheet-win { border-radius: 18px 18px 0 0; border-top: 1px solid var(--nh-border); padding-top: 0;
+      box-shadow: 0 -14px 50px rgba(0,0,0,.5); }
+    .nh-sheeth { display: flex; }
+    .nh-modal.nh-sheet-win .nh-sheeth { margin-top: 0; }
     .nh-mhead { flex-wrap: wrap; row-gap: 7px; }
     .nh-search { order: 5; flex-basis: 100%; }
     .nh-title { font-size: 16px; }
     .nh-statusbar { flex-wrap: wrap; row-gap: 4px; }
+    .nh-toolbar { gap: 3px; row-gap: 5px; }
+  }
+
+  /* topbar swipes sideways on narrow screens — one row, no cramped wrap (2.1.6) */
+  @media (max-width: 760px) {
+    .nh-mhead { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; padding-bottom: 8px; }
+    .nh-mhead::-webkit-scrollbar { display: none; }
+    .nh-mhead > * { flex-shrink: 0; }
+    .nh-mhead .nh-search { order: 0; flex: 0 0 auto; flex-basis: auto; width: 148px; min-width: 148px; }
+    .nh-mhead .nh-search input { width: 100%; min-width: 0; }
   }
 
   /* touch targets: everything a thumbs-width bigger */
@@ -960,6 +981,7 @@ export function setup(ctx) {
   const overlayWrap = ctx.dom.inject('body', `
     <div class="nh-overlay">
       <div class="nh-modal" role="dialog" aria-label="Notehaven notes">
+        <div class="nh-sheeth" title="Drag to resize · double-tap for full screen" aria-label="Resize panel"></div>
         <div class="nh-mhead">
           <span class="nh-mtitle">${ICONS.notebook.replace('width="20" height="20"', 'width="17" height="17"')}<span class="nh-mt-text">Notehaven</span></span>
           <div class="nh-search">${ICONS.search}<input type="text" placeholder="Search notes, #tags…" spellcheck="false"></div>
@@ -1068,6 +1090,51 @@ export function setup(ctx) {
   const wsMinBtn = overlayWrap.querySelector('.nh-ws-min');
   const wsFullBtn = overlayWrap.querySelector('.nh-ws-full');
   const mheadEl = overlayWrap.querySelector('.nh-mhead');
+
+  /* 2.1.5 — phone sheet: drag the grab pill to size 55%..100% of the screen,
+     persisted per user; double-tap snaps back to full screen. Android and
+     iOS both supported (same pointer events); desktop never sees the pill. */
+  const sheetHandle = overlayWrap.querySelector('.nh-sheeth');
+  const applySheetHeight = (px) => {
+    const vh = window.innerHeight || 700;
+    if (!px) {
+      modalEl.style.removeProperty('--nh-sheet-h');
+      modalEl.classList.remove('nh-sheet-win');
+      return;
+    }
+    const h = Math.min(Math.max(px, Math.round(vh * 0.55)), vh);
+    modalEl.style.setProperty('--nh-sheet-h', h + 'px');
+    modalEl.classList.toggle('nh-sheet-win', h < vh - 4);
+  };
+  let sheetDrag = null;
+  sheetHandle.addEventListener('pointerdown', (e) => {
+    sheetDrag = { id: e.pointerId, sy: e.clientY, sh: modalEl.getBoundingClientRect().height, h: 0 };
+    try { sheetHandle.setPointerCapture(e.pointerId); } catch { /* older engines */ }
+    sheetHandle.classList.add('nh-grab');
+  });
+  sheetHandle.addEventListener('pointermove', (e) => {
+    if (!sheetDrag || e.pointerId !== sheetDrag.id) return;
+    sheetDrag.h = sheetDrag.sh + (sheetDrag.sy - e.clientY);
+    applySheetHeight(sheetDrag.h);
+  });
+  const sheetEnd = (e) => {
+    if (!sheetDrag || (e && e.pointerId !== undefined && e.pointerId !== sheetDrag.id)) return;
+    sheetHandle.classList.remove('nh-grab');
+    if (sheetDrag.h) {
+      const vh = window.innerHeight || 700;
+      state.settings.ui.sheetH = sheetDrag.h >= vh - 4 ? null : Math.round(sheetDrag.h);
+      if (sheetDrag.h >= vh - 4) applySheetHeight(null);
+      saveSettingsSoon();
+    }
+    sheetDrag = null;
+  };
+  sheetHandle.addEventListener('pointerup', sheetEnd);
+  sheetHandle.addEventListener('pointercancel', sheetEnd);
+  sheetHandle.addEventListener('dblclick', () => {
+    state.settings.ui.sheetH = null;
+    applySheetHeight(null);
+    saveSettingsSoon();
+  });
   const crumbEl = overlayWrap.querySelector('.nh-crumb');
   const gutterEl = overlayWrap.querySelector('.nh-linegutter');
   const modeGroupEl = overlayWrap.querySelector('.nh-modegroup');
@@ -3309,14 +3376,16 @@ export function setup(ctx) {
   function wireHaloDrag(el) {
     let drag = null;
     el.addEventListener('pointerdown', (e) => {
-      drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: parseFloat(el.style.left) || 0, oy: parseFloat(el.style.top) || 0, moved: false };
-      try { el.setPointerCapture(e.pointerId); } catch { /* older engines */ }
+      drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, st: Date.now(), ox: parseFloat(el.style.left) || 0, oy: parseFloat(el.style.top) || 0, moved: false };
+      // NOTE: no setPointerCapture yet — capturing on touchstart makes some
+      // mobile browsers swallow the tap's synthetic click entirely
     }, { passive: true });
     el.addEventListener('pointermove', (e) => {
       if (!drag || e.pointerId !== drag.id) return;
       const dx = e.clientX - drag.sx;
       const dy = e.clientY - drag.sy;
       if (!drag.moved && Math.hypot(dx, dy) < 6) return; // still a tap
+      if (!drag.moved) try { el.setPointerCapture(e.pointerId); } catch { /* older engines */ }
       drag.moved = true;
       state.haloResizeAt = Date.now(); // suppress the tap that ends a drag
       const size = state.settings.logo.size;
@@ -3328,7 +3397,15 @@ export function setup(ctx) {
     const finish = (e) => {
       if (!drag) return;
       if (e && e.pointerId !== undefined && e.pointerId !== drag.id) return;
-      if (drag.moved) {
+      if (!drag.moved) {
+        // v2.1.4 — a clean up-without-move IS the tap. Mobile browsers often
+        // eat the synthetic click (capture quirks / gesture layers), so the
+        // pointerup path opens directly; openFromHalo dedupes the real click.
+        if (e && e.type === 'pointerup' && Date.now() - (drag.st || 0) < 800) openFromHalo();
+        drag = null;
+        return;
+      }
+      {
         let nx = drag.nx;
         const ny = drag.ny;
         if (state.settings.logo.snapToEdge) {
@@ -3812,6 +3889,7 @@ export function setup(ctx) {
       modalEl.style.left = '';
       modalEl.style.top = '';
     }
+    if (!showSheet) applySheetHeight(u.sheetH || null); // phones: re-seat the sheet
     modalEl.classList.toggle('nh-min', !!u.minimized);
     wsMinBtn.textContent = u.minimized ? '▢' : '—';
     wsMinBtn.title = u.minimized ? 'Restore the workspace' : 'Minimize to header';
