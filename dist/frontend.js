@@ -2688,6 +2688,7 @@ export function setup(ctx) {
     // clamp persisted sizes to TODAY's viewport (screen/zoom may have changed
     // since the size was saved) so the resize grip never falls off-screen.
     const vh = window.innerHeight || 800;
+    const showSheet = vw > 560;
     const mw = u.modalW ? Math.min(u.modalW, Math.max(400, vw - 16)) : 0;
     const mh = u.modalH ? Math.min(u.modalH, Math.max(280, vh - 12)) : 0;
     if (u.modalW && mw !== u.modalW) state.settings.ui.modalW = mw; // self-heal bad values
