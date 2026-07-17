@@ -1029,7 +1029,7 @@ export function setup(ctx) {
               <span class="nh-selcount"></span>
               <button class="nh-ambtn primary nh-am-done">Done</button>
             </div>
-            <div class="nh-listhead"><span class="nh-lh-left"><span class="nh-view-label">All</span></span><span style="display:inline-flex;align-items:center;gap:4px"><button class="nh-iconbtn nh-select-toggle" title="Select notes" style="width:26px;height:26px;font-size:12px">☑</button><span class="nh-count"></span></span></div>
+            <div class="nh-listhead"><span class="nh-lh-left"><span class="nh-view-label">All</span></span><span style="display:inline-flex;align-items:center;gap:4px"><button class="nh-iconbtn nh-import-notes" title="Import notes (.md / .json / .txt…)" style="width:26px;height:26px;font-size:12px">⬆</button><button class="nh-iconbtn nh-select-toggle" title="Select notes" style="width:26px;height:26px;font-size:12px">☑</button><span class="nh-count"></span></span></div>
             <div class="nh-list nh-scroll"></div>
             <div class="nh-rail-resizer" title="Drag to resize the rail"></div>
           </div>
@@ -1099,6 +1099,7 @@ export function setup(ctx) {
   const amDone = overlayWrap.querySelector('.nh-am-done');
   const selCount = overlayWrap.querySelector('.nh-selcount');
   const viewLabel = overlayWrap.querySelector('.nh-view-label');
+  overlayWrap.querySelector('.nh-import-notes').addEventListener('click', () => importFlow());
   const selectToggle = overlayWrap.querySelector('.nh-select-toggle');
   const railResizer = overlayWrap.querySelector('.nh-rail-resizer');
   const mResize = overlayWrap.querySelector('.nh-mresize');
@@ -1562,6 +1563,7 @@ export function setup(ctx) {
     listWrap.querySelectorAll('img[data-folder-ico]').forEach((img) => {
       const src = state.imageCache.get(img.getAttribute('data-folder-ico'));
       if (src) img.src = src;
+      else { const chip = img.closest('.nh-fico'); if (chip) chip.outerHTML = folderIconHtml({}); } // stale picture → 📁
     });
   }
 
@@ -3808,6 +3810,12 @@ export function setup(ctx) {
     prefSwitch('Indent using tabs', 'Off: Tab inserts spaces instead.', () => E2().indentTabs, (v) => { E2().indentTabs = v; }),
     prefSlider('Indent visual width', 'Spaces a tab renders as.', () => E2().indentWidth, (v) => { E2().indentWidth = v; }, 2, 8, 1, (v) => `${v}sp`),
   );
+  const wsResetField = document.createElement('div');
+  wsResetField.className = 'nh-field';
+  wsResetField.innerHTML = `<div><label>Panes & splits</label><div class="nh-desc">Workspace full of empty panes? One click back to a single clean editor.</div></div>
+    <button class="nh-btn nh-ws-reset">🧹 Reset to one pane</button>`;
+  editorCard.appendChild(wsResetField);
+  wsResetField.querySelector('.nh-ws-reset').addEventListener('click', () => resetWorkspaceLayout());
 
   const navCard = document.createElement('div');
   navCard.className = 'nh-card';
@@ -4157,6 +4165,17 @@ export function setup(ctx) {
   window.addEventListener('resize', onViewportResizeHalo);
   disposers.push(() => window.removeEventListener('resize', onViewportResizeHalo));
 
+  // a folder picture that 404s (deleted/GC'd image) becomes 📁, never a broken box
+  const nhFolderIconErr = (e) => {
+    const img = e.target;
+    if (img && img.tagName === 'IMG' && img.hasAttribute && img.hasAttribute('data-folder-ico')) {
+      const chip = img.closest && img.closest('.nh-fico');
+      if (chip) chip.outerHTML = folderIconHtml({});
+    }
+  };
+  window.addEventListener('error', nhFolderIconErr, true);
+  disposers.push(() => window.removeEventListener('error', nhFolderIconErr, true));
+
 
   /* ==================================================== */
   /* WORKSPACE 2.0 — tabs · tab groups · splits · window   */
@@ -4232,6 +4251,21 @@ export function setup(ctx) {
     return { layout: { type: 'group', gid: 'g_main', tabs: [], activeId: null }, focusGid: 'g_main' };
   }
 
+  /* One clean pane, whenever the workspace degenerates into split graveyards.
+     Also auto-heals at boot when EVERY pane is empty (the 2.1.0-era race and
+     rapid split clicking both produced those). */
+  function resetWorkspaceLayout(msg) {
+    const fresh = wsDefault();
+    const cur = state.currentId && metaOf(state.currentId) ? state.currentId : null;
+    if (cur) { fresh.layout.tabs = [{ noteId: cur, pinned: false }]; fresh.layout.activeId = cur; }
+    state.ws = { layout: fresh.layout, focusGid: fresh.focusGid };
+    persistWs();
+    buildWs();
+    renderTabs();
+    if (cur) wsNoteShown(cur);
+    toast('info', msg || 'Workspace reset — one clean pane ✨');
+  }
+
   function wsInit() {
     const saved = state.settings.editor && state.settings.editor.workspace;
     state.ws = (saved && saved.layout) ? { layout: saved.layout, focusGid: saved.focusGid || 'g_main' } : wsDefault();
@@ -4239,6 +4273,12 @@ export function setup(ctx) {
     state.ws.layout = wsNormalize(state.ws.layout, noteIds) || wsDefault().layout;
     wsPruneDead();
     if (!wsFindGroup(state.ws.layout, state.ws.focusGid)) state.ws.focusGid = wsFirstGroup(state.ws.layout).gid;
+    // split graveyard cleanup: several panes and not a single tab anywhere
+    const deadGroups = wsAllGroups(state.ws.layout);
+    if (deadGroups.length > 1 && deadGroups.every((g) => !(g.tabs || []).length)) {
+      state.ws = wsDefault();
+      state._wsHealed = true;
+    }
   }
 
   function wsPruneDead() {
@@ -4766,6 +4806,8 @@ export function setup(ctx) {
         { key: 'd1', label: '', type: 'divider' },
         { key: 'split-r', label: '↔ Split right' },
         { key: 'split-d', label: '↕ Split down' },
+        { key: 'ws-reset', label: '🧹 Reset panes to one' },
+        { key: 'd0', label: '', type: 'divider' },
         { key: 'rename', label: '✏️ Rename' },
         { key: 'dup', label: '📑 Duplicate (sequential name)' },
         { key: 'move', label: '📁 Move note to…' },
@@ -4782,6 +4824,7 @@ export function setup(ctx) {
     else if (selectedKey === 'm-source') applyMode('source');
     else if (selectedKey === 'split-r') splitCurrent('row');
     else if (selectedKey === 'split-d') splitCurrent('col');
+    else if (selectedKey === 'ws-reset') resetWorkspaceLayout();
     else if (selectedKey === 'rename') { titleInput.focus(); titleInput.select(); }
     else if (selectedKey === 'dup') { try { await duplicateNoteSequential(meta); } catch (e) { toast('error', e.message); } }
     else if (selectedKey === 'export') {
@@ -5093,6 +5136,7 @@ export function setup(ctx) {
         }
         wsNoteShown(resume.id);
         buildWs(); // seat the editor into the focused pane, panes render their own views
+        if (state._wsHealed) { state._wsHealed = false; toast('info', 'Mended your workspace — stray empty panes removed ✨'); }
         applyEditorPrefs();
         applyUi(); // positions/minimize apply AFTER structure exists
       }

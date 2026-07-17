@@ -16,6 +16,19 @@ No build step required — `dist/` is hand-written, dependency-free ES2022 and i
 
 ---
 
+## What's new in 2.2.0 — "mend my mess" release 🧹
+
+- **Split-graveyard fix:** panes that multiplied into a field of
+  “empty pane” placeholders get cleaned automatically at boot (when every pane
+  is empty, the layout folds back to one), and you can reset anytime yourself:
+  editor **⋮ → 🧹 Reset panes to one**, or **Settings → ⌨ Editor → 🧹 Reset to
+  one pane**.
+- **Import is now unmissable:** an **⬆ button** lives in the note rail header
+  (next to the counter). It accepts .md / .json / .txt / code files, same flow
+  as ⋯ → Import notes.
+- **Broken folder pictures heal themselves:** if a folder's uploaded icon was
+  deleted, the chip falls back to the default 📁 instead of a broken-image box.
+
 ## What's new in 2.1.9
 
 - **Phone scroll controls:** scroll regions inside the panel now show a slim,
