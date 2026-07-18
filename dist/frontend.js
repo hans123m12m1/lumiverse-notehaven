@@ -79,6 +79,9 @@ const NH_CSS = `
     padding: 18px;
   }
   .nh-overlay.nh-open { display: flex; }
+  /* 2.5.5 — clear backdrop: see AND touch the chat behind the notes window */
+  .nh-overlay.nh-clearbg { pointer-events: none; }
+  .nh-overlay.nh-clearbg .nh-modal { pointer-events: auto; }
   .nh-overlay.nh-open .nh-modal { animation: nh-pop .18s ease; }
   @keyframes nh-pop { from { transform: translateY(10px) scale(.98); opacity: 0; } to { transform: none; opacity: 1; } }
 
@@ -423,6 +426,7 @@ const NH_CSS = `
   /* floating chat logo — fully self-rendered: no host widget, no permission */
   .nh-halo-float { position: fixed; z-index: 1200; touch-action: none; }
   .nh-halo-float.nh-settle { transition: left .22s ease-out, top .22s ease-out; }
+  .nh-halo.nh-nobg { background: transparent; box-shadow: 0 4px 18px rgba(0,0,0,.45); } /* 2.5.4 — ghost mode */
   .nh-halo-float.nh-hi { animation: nh-halo-hi 1.1s ease-out 2; } /* 2.4.2 — 'I'm over here!' pulse */
   @keyframes nh-halo-hi { 0%,100% { transform: scale(1); } 35% { transform: scale(1.18); box-shadow: 0 0 0 10px color-mix(in srgb, var(--lumiverse-accent, #b28cff) 30%, transparent); } }
 
@@ -991,6 +995,7 @@ export function setup(ctx) {
     navShowTags: true, navTagIcons: true, navTagsFolder: false, navUntagged: false,
     navCounters: { wf: true, wF: true, cf: false, cF: false, tf: false, tF: false, nf: false },
     ifaceIcons: { folder: '', note: '', tag: '' },
+    clearBackdrop: false, // 2.5.5 — park notes next to chat, no dim wall
     // 2.5.3 — FLOAT IS THE PHONE DEFAULT ("at 100% zoom it eats the whole
     // screen"): notes open in a centered, draggable window; `phoneDocked`
     // is the opt-out back to the classic bottom sheet.
@@ -2677,8 +2682,9 @@ export function setup(ctx) {
     items.push({ key: 'exp-all', label: '🗄 Export ALL notes (backup .json)' });
     items.push({ key: 'd1', label: '', type: 'divider' });
     items.push({ key: 'import', label: '⬆ Import notes (.md / .json)…' });
+    items.push({ key: 'd9', label: '', type: 'divider' });
+    items.push({ key: 'clear-bg', label: state.settings.ui.clearBackdrop ? '🌫 Bring back the dim backdrop' : '👁 Clear backdrop — park notes next to chat', active: !!state.settings.ui.clearBackdrop }); // 2.5.5
     if ((window.innerWidth || 1280) <= 560) { // 2.5.0 — the drag-anywhere window, one tap away
-      items.push({ key: 'd2', label: '', type: 'divider' });
       items.push({ key: 'phone-float', label: state.settings.ui.phoneDocked ? '🎈 Float window — drag the UI around' : '📌 Dock the UI to the bottom', active: !state.settings.ui.phoneDocked });
     }
     const rect = moreBtn.getBoundingClientRect();
@@ -2691,6 +2697,14 @@ export function setup(ctx) {
     else if (selectedKey === 'exp-all') exportAll();
     else if (selectedKey === 'import') importFlow();
     else if (selectedKey === 'phone-float') togglePhoneFloat();
+    else if (selectedKey === 'clear-bg') { // 2.5.5
+      state.settings.ui.clearBackdrop = !state.settings.ui.clearBackdrop;
+      saveSettingsSoon();
+      applyUi();
+      toast('info', state.settings.ui.clearBackdrop
+        ? 'Clear backdrop ON 👁 chat stays visible & clickable behind your notes.'
+        : 'Backdrop restored 🌫 focus mode.');
+    }
   });
 
   /* ---------------- toolbar (live surface) ---------------- */
@@ -3428,6 +3442,14 @@ export function setup(ctx) {
         <div class="nh-slider"><input type="range" min="24" max="256" step="2"><output>64px</output></div>
       </div>
       <div class="nh-field">
+        <div><label>Transparency</label><div class="nh-desc">Faint ghost (15%) to fully solid (100%).</div></div>
+        <div class="nh-slider"><input type="range" class="nh-opacity" min="15" max="100" step="5"><output class="nh-opacity-out">100%</output></div>
+      </div>
+      <div class="nh-field">
+        <div><label>Backdrop ring</label><div class="nh-desc">The tinted body + ring behind the logo. Off: clean transparent orb — perfect for most custom icons.</div></div>
+        <span class="nh-switch"><input type="checkbox" class="nh-bgswitch" checked><span class="nh-track"></span></span>
+      </div>
+      <div class="nh-field">
         <div><label>Show in chat</label><div class="nh-desc">Hide it without losing your setup.</div></div>
         <span class="nh-switch"><input type="checkbox" class="nh-visible"><span class="nh-track"></span></span>
       </div>
@@ -3488,6 +3510,9 @@ export function setup(ctx) {
     sizeOut.textContent = `${logo.size}px`;
     visibleSwitch.checked = logo.visible;
     snapSwitch.checked = logo.snapToEdge;
+    opacityRange.value = String(Math.round((logo.opacity ?? 1) * 100));
+    opacityOut.textContent = `${opacityRange.value}%`;
+    bgSwitch.checked = logo.backdrop !== false; // 2.5.4
     haloPreviewImg.src = state.logoSrc;
     const p = haloPos();
     posRead.textContent = `x: ${Math.round(p.x)}, y: ${Math.round(p.y)}`;
@@ -3664,6 +3689,7 @@ export function setup(ctx) {
     }
     haloBubbleEl = el;
     placeHaloBubble(pos.x, pos.y);
+    syncHaloChrome(); // 2.5.4 — opacity + backdrop on every (re)birth
     el.style.display = logo.visible ? '' : 'none';
     wireHaloDrag(el);
     wireHaloTriggers(el);
@@ -3729,6 +3755,30 @@ export function setup(ctx) {
     saveSettingsSoon();
     recreateHaloSoon();
   }
+
+  // 2.5.4 — transparency + backdrop live here so every path (create, settings,
+  // rescue timer) paints the same orb; the custom logo image is never altered.
+  const opacityRange = haloRoot.querySelector('input.nh-opacity');
+  const opacityOut = haloRoot.querySelector('.nh-opacity-out');
+  const bgSwitch = haloRoot.querySelector('.nh-bgswitch');
+  function syncHaloChrome() {
+    const { logo } = state.settings;
+    if (haloBubbleEl) {
+      haloBubbleEl.style.opacity = String(logo.opacity ?? 1);
+      haloBubbleEl.classList.toggle('nh-nobg', logo.backdrop === false);
+    }
+  }
+  opacityRange.addEventListener('input', () => {
+    state.settings.logo.opacity = Number(opacityRange.value) / 100;
+    opacityOut.textContent = `${opacityRange.value}%`;
+    syncHaloChrome();
+    saveSettingsSoon();
+  });
+  bgSwitch.addEventListener('change', () => {
+    state.settings.logo.backdrop = bgSwitch.checked;
+    syncHaloChrome();
+    saveSettingsSoon();
+  });
 
   function setHaloVisible(v) {
     state.settings.logo.visible = v;
@@ -3844,6 +3894,10 @@ export function setup(ctx) {
               <div class="nh-slider"><input type="range" class="nh-ui-blur" min="0" max="24" step="1"><output></output></div>
             </div>
             <div class="nh-field">
+              <div><label>Clear backdrop</label><div class="nh-desc">No dim, no blur — the chat stays visible and CLICKABLE behind your notes. Park the window next to the conversation and keep typing.</div></div>
+              <span class="nh-switch"><input type="checkbox" class="nh-clearbg-sw"><span class="nh-track"></span></span>
+            </div>
+            <div class="nh-field">
               <div><label>Editor font size</label></div>
               <div class="nh-slider"><input type="range" class="nh-ui-font" min="11" max="17" step="0.5"><output></output></div>
             </div>
@@ -3882,6 +3936,7 @@ export function setup(ctx) {
   const spanelEl = settingsWrap.querySelector('.nh-spanel');
   const uiAccent = settingsWrap.querySelector('.nh-ui-accent');
   const uiTheme = settingsWrap.querySelector('.nh-ui-theme');
+  const clearBgSw = settingsWrap.querySelector('.nh-clearbg-sw'); // 2.5.5
   // the Halo's controls live at the top of Settings — one cozy home for everything
   settingsWrap.querySelector('.nh-sbody').prepend(haloRoot);
 
@@ -4068,8 +4123,10 @@ export function setup(ctx) {
 
   function applyUi() {
     const u = state.settings.ui;
-    overlay.style.background = `rgba(9, 8, 15, ${u.backdropDim})`;
-    overlay.style.backdropFilter = u.backdropBlur > 0 ? `blur(${u.backdropBlur}px)` : 'none';
+    const clearBg = !!u.clearBackdrop; // 2.5.5
+    overlay.classList.toggle('nh-clearbg', clearBg);
+    overlay.style.background = clearBg ? 'transparent' : `rgba(9, 8, 15, ${u.backdropDim})`;
+    overlay.style.backdropFilter = clearBg ? 'none' : (u.backdropBlur > 0 ? `blur(${u.backdropBlur}px)` : 'none');
     modalEl.style.opacity = String(u.modalOpacity);
     const light = u.theme === 'light';
     for (const rootEl of [modalEl, launchRoot, haloRoot, spanelEl, typeof navRoot !== 'undefined' ? navRoot : null]) {
@@ -4082,6 +4139,7 @@ export function setup(ctx) {
     themeBtn.innerHTML = light ? ICONS.moon : ICONS.sun; // 2.5.1 — real vectors, no emoji
     themeBtn.title = light ? 'Switch to dark theme' : 'Switch to light theme';
     if (uiTheme) uiTheme.value = u.theme || 'auto';
+    if (clearBgSw) clearBgSw.checked = clearBg; // 2.5.5
     modalEl.style.setProperty('--nh-editor-fs', `${u.fontSize}px`);
 
     // rail width — overlay mode on phones gets a viewport-capped width
@@ -4170,6 +4228,11 @@ export function setup(ctx) {
     settingsOverlay.classList.remove('nh-open');
   }
 
+  clearBgSw.addEventListener('change', () => {
+    state.settings.ui.clearBackdrop = clearBgSw.checked; // 2.5.5
+    saveSettingsSoon();
+    applyUi();
+  });
   settingsBtn.addEventListener('click', openSettings);
   settingsWrap.querySelector('.nh-sc-close').addEventListener('click', closeSettings);
   settingsOverlay.addEventListener('mousedown', (e) => { if (e.target === settingsOverlay) closeSettings(); });
@@ -5317,7 +5380,7 @@ export function setup(ctx) {
       // without it (or a garbage size) made createHalo() throw and the Halo
       // silently never existed. Merge it like every other settings section.
       if ('phoneFloat' in state.settings.ui) delete state.settings.ui.phoneFloat; // 2.5.3 — legacy key, semantics inverted
-      state.settings.logo = { size: 64, visible: true, snapToEdge: true, x: null, y: null, ...(state.settings.logo || {}) };
+      state.settings.logo = { size: 64, visible: true, snapToEdge: true, x: null, y: null, opacity: 1, backdrop: true, ...(state.settings.logo || {}) }; // 2.5.4 — new keys default in without touching saved ones
       if (!Number.isFinite(state.settings.logo.size) || state.settings.logo.size < 24 || state.settings.logo.size > 256) state.settings.logo.size = 64;
       wsInit(); // rebuild tabs/groups/splits from the saved layout
       canvas.classList.add(`nh-mode-${state.settings.editor.mode}`);

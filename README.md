@@ -16,6 +16,32 @@ No build step required — `dist/` is hand-written, dependency-free ES2022 and i
 
 ---
 
+## What's new in 2.5.5 — clear backdrop 👁
+
+"Moving it works, but I want to put it next to the chat without the
+background obscuring." Exactly — new **Clear backdrop** toggle:
+
+- 👁 Kills the dim + blur wall behind the notes window, applies live.
+- 🖱 The chat behind stays **fully clickable/scrollable** — touches fall
+  through everywhere except the notes window itself. Type in chat with your
+  notes parked beside it (pairs beautifully with the phone float window or
+  a dragged-aside desktop window).
+- One tap in the **⋯ menu**, plus a switch in **Settings → Appearance**.
+  Saved per user; flip back for focus mode anytime.
+
+## What's new in 2.5.4 — halo transparency & ghost mode 👻
+
+Requested: make the Halo translucent. Delivered two dials in
+**Settings → Halo → Comfort controls**:
+
+- 🫥 **Transparency slider** — 15% faint ghost to 100% solid, live preview
+  as you slide, saved per user.
+- ⭕ **Backdrop ring toggle** — turn off the tinted body/ring behind the
+  logo for a clean transparent orb (great look for custom icons).
+- 🔒 **Your custom icon is never touched** — these change only how the orb
+  is painted, never which image it shows (broken images still self-heal to
+  the built-in orb, as before).
+
 ## What's new in 2.5.3 — float is now the phone DEFAULT 📱🎈
 
 "At 100% zoom it really does eat the whole screen." Fixed properly: **phones
