@@ -131,6 +131,7 @@ const NH_CSS = `
     background: transparent; color: var(--nh-muted); cursor: pointer;
     transition: background .15s, color .15s, transform .1s; flex: 0 0 auto;
   }
+  .nh-iconbtn svg { width: 17px; height: 17px; display: block; } /* 2.5.1 — real icons sit naturally in 30px buttons */
   .nh-iconbtn:hover { background: var(--nh-bg-2); color: var(--nh-text); }
   .nh-iconbtn:active { transform: scale(.94); }
   .nh-iconbtn.is-active { color: var(--nh-accent); background: color-mix(in srgb, var(--nh-accent) 14%, transparent); }
@@ -180,7 +181,9 @@ const NH_CSS = `
   }
   .nh-title:hover, .nh-title:focus { background: var(--nh-bg-2); }
   .nh-modegroup { display: inline-flex; background: var(--nh-bg-2); border: 1px solid var(--nh-border); border-radius: 999px; padding: 2px; gap: 2px; }
-  .nh-modebtn { border: 0; background: transparent; color: var(--nh-muted); font-size: 11.5px; font-weight: 650; padding: 4px 11px; border-radius: 999px; cursor: pointer; transition: all .13s; }
+  .nh-modebtn { border: 0; background: transparent; color: var(--nh-muted); font-size: 11.5px; font-weight: 650; padding: 4px 11px; border-radius: 999px; cursor: pointer; transition: all .13s; display: inline-flex; align-items: center; gap: 4.5px; }
+  .nh-modebtn svg { width: 12.5px; height: 12.5px; display: block; }
+  .nh-mclose svg { width: 15px; height: 15px; display: block; } /* 2.5.2 vector close */
   .nh-modebtn:hover { color: var(--nh-text); }
   .nh-modebtn.is-active { background: var(--nh-accent); color: #1a1526; }
 
@@ -245,8 +248,9 @@ const NH_CSS = `
   .nh-imgcap { color: var(--nh-muted); font-size: 11px; margin-top: 4px; }
 
   /* phone sheet grab handle (visible only on phones) */
-  .nh-sheeth { display: none; flex: 0 0 auto; align-items: center; justify-content: center; height: 16px;
-    touch-action: none; cursor: ns-resize; margin-top: calc(env(safe-area-inset-top, 0px) * -1); }
+  .nh-sheeth { display: none; flex: 0 0 auto; align-items: center; justify-content: center;
+    height: calc(16px + env(safe-area-inset-top, 0px));
+    touch-action: none; cursor: ns-resize; padding-top: env(safe-area-inset-top, 0px); box-sizing: content-box; }
   .nh-sheeth::after { content: ''; width: 44px; height: 4.5px; border-radius: 99px; background: var(--nh-border); transition: background .15s, width .15s; }
   .nh-sheeth.nh-grab::after, .nh-sheeth:active::after { background: var(--nh-accent); width: 58px; }
 
@@ -265,12 +269,17 @@ const NH_CSS = `
     .nh-overlay .nh-modal { pointer-events: auto; }
     .nh-pane, .nh-list, .nh-surfacewrap, .nh-nav-body, .nh-sbody { -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
     .nh-overlay { padding: 0; align-items: flex-end; }
-    .nh-modal { width: 100vw; height: 100vh; height: var(--nh-sheet-h, 100dvh); max-width: none; max-height: none; border-radius: 0; border: 0;
-      padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+    .nh-modal { width: 100vw; height: 100vh; height: var(--nh-sheet-h, var(--nh-vvh, 100dvh)); max-width: none; max-height: var(--nh-vvh, none); border-radius: 0; border: 0;
+      padding-bottom: env(safe-area-inset-bottom, 0px); }
     .nh-modal.nh-sheet-win { border-radius: 18px 18px 0 0; border-top: 1px solid var(--nh-border); padding-top: 0;
       box-shadow: 0 -14px 50px rgba(0,0,0,.5); }
     .nh-sheeth { display: flex; }
-    .nh-modal.nh-sheet-win .nh-sheeth { margin-top: 0; }
+    .nh-modal.nh-sheet-win .nh-sheeth { height: 16px; padding-top: 0; }
+    /* 2.5.0 — phone float window: a real draggable window on phones too */
+    .nh-modal.nh-floatwin { border-radius: 18px; border: 1px solid var(--nh-border); padding-bottom: 0;
+      box-shadow: 0 24px 70px rgba(0,0,0,.62); max-height: none; }
+    .nh-modal.nh-floatwin .nh-sheeth { height: 18px; cursor: grab; }
+    .nh-modal.nh-floatwin .nh-sheeth::after { width: 66px; background: var(--nh-accent); }
     .nh-mhead { flex-wrap: wrap; row-gap: 7px; }
     .nh-search { order: 5; flex-basis: 100%; }
     .nh-title { font-size: 16px; }
@@ -404,7 +413,9 @@ const NH_CSS = `
   .nh-posread { color: var(--nh-muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
 
   /* ---------- floating halo widget ---------- */
-  .nh-halo { width: var(--halo-size, 64px); height: var(--halo-size, 64px); border-radius: 28%; position: relative; cursor: grab; user-select: none; }
+  .nh-halo { width: var(--halo-size, 64px); height: var(--halo-size, 64px); border-radius: 28%; position: relative; cursor: grab; user-select: none;
+    background: color-mix(in srgb, var(--lumiverse-accent, #b28cff) 26%, rgba(14,12,22,.72)); /* 2.4.2 — a real body: never invisible glass */
+    box-shadow: 0 4px 18px rgba(0,0,0,.5), inset 0 0 0 1.5px color-mix(in srgb, var(--lumiverse-accent, #b28cff) 80%, #fff); }
   .nh-halo:active { cursor: grabbing; }
   .nh-halo img { width: 100%; height: 100%; object-fit: contain; border-radius: inherit; filter: drop-shadow(0 4px 14px rgba(0,0,0,.45)); user-select: none; -webkit-user-drag: none; pointer-events: none; }
   .nh-halo::after { content: ''; position: absolute; inset: -14%; background: radial-gradient(circle, color-mix(in srgb, var(--lumiverse-accent, #b28cff) 28%, transparent) 0%, transparent 70%); z-index: -1; opacity: 0; transition: opacity .25s; border-radius: 50%; }
@@ -412,6 +423,8 @@ const NH_CSS = `
   /* floating chat logo — fully self-rendered: no host widget, no permission */
   .nh-halo-float { position: fixed; z-index: 1200; touch-action: none; }
   .nh-halo-float.nh-settle { transition: left .22s ease-out, top .22s ease-out; }
+  .nh-halo-float.nh-hi { animation: nh-halo-hi 1.1s ease-out 2; } /* 2.4.2 — 'I'm over here!' pulse */
+  @keyframes nh-halo-hi { 0%,100% { transform: scale(1); } 35% { transform: scale(1.18); box-shadow: 0 0 0 10px color-mix(in srgb, var(--lumiverse-accent, #b28cff) 30%, transparent); } }
 
   /* ---------- image lightbox ---------- */
   .nh-lightbox { position: fixed; inset: 0; z-index: 9999; background: rgba(8,7,14,.82); display: flex; align-items: center; justify-content: center; cursor: zoom-out; backdrop-filter: blur(4px); }
@@ -576,6 +589,23 @@ const NH_ICON_LIB = {
 };
 
 const ICONS = {
+  // 2.5.1 — requested by a user: the theme toggle swaps its ☀️/🌙 emoji for
+  // real vector icons (crisp at any size, they follow the accent color)
+  sun: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>',
+  moon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>',
+  // 2.5.2 — the whole header went vector (user request: emoji → SVG)
+  chevL: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>',
+  chevR: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>',
+  minus: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg>',
+  square: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>',
+  expand: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>',
+  compress: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/></svg>',
+  x: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  moreH: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg>',
+  moreV: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg>',
+  pen: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  bookOpen: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h6a4 4 0 0 1 4 4v12a3 3 0 0 0-3-3H2Z"/><path d="M22 4h-6a4 4 0 0 0-4 4v12a3 3 0 0 1 3-3h7Z"/></svg>',
+  code: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg>',
   notebook: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5a2.5 2.5 0 0 1-2.5 2.5H6.5A2.5 2.5 0 0 1 4 18.5Z"/><path d="M20 3v13"/><path d="M8 7.5h5M8 11h3"/></svg>',
   spark: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.4L19.3 10l-5.4 1.9L12 17.3l-1.9-5.4L4.7 10l5.4-1.6Z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8Z"/></svg>',
   search: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>',
@@ -591,7 +621,9 @@ const ICONS = {
   gear: '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55h.09a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1Z"/></svg>',
 };
 
-/* Default halo logo — a soft lavender spark (SVG, no external assets) */
+/* Default halo logo — a lavender orb with a crescent moon over an open book
+   (2.4.2: the old plain sparkle looked EXACTLY like the host's own floating
+   buttons, so users couldn't pick the Halo out of the crowd). */
 function defaultLogoDataUrl() {
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'>
   <defs>
@@ -600,8 +632,9 @@ function defaultLogoDataUrl() {
     </radialGradient>
   </defs>
   <rect x='4' y='4' width='88' height='88' rx='26' fill='url(#g)'/>
-  <path d='M48 22c2.4 10.8 6.6 15 17.4 17.4C55 43 50.4 46.6 48 57.4 45.6 46.6 41 43 30.6 39.4 41.4 37 45.6 32.8 48 22Z' fill='#fff' opacity='.95'/>
-  <circle cx='66' cy='62' r='4' fill='#fff' opacity='.8'/><circle cx='30' cy='66' r='2.6' fill='#fff' opacity='.6'/>
+  <path d='M54 20a19 19 0 1 0 6 37 15.5 15.5 0 0 1-6-37Z' fill='#fff' opacity='.96'/>
+  <path d='M24 60c8-4.5 16-4.5 24 0 8-4.5 16-4.5 24 0v13c-8-4.5-16-4.5-24 0-8-4.5-16-4.5-24 0Z' fill='#fff' opacity='.92'/>
+  <circle cx='70' cy='26' r='3.2' fill='#fff' opacity='.8'/>
 </svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
@@ -958,6 +991,10 @@ export function setup(ctx) {
     navShowTags: true, navTagIcons: true, navTagsFolder: false, navUntagged: false,
     navCounters: { wf: true, wF: true, cf: false, cF: false, tf: false, tF: false, nf: false },
     ifaceIcons: { folder: '', note: '', tag: '' },
+    // 2.5.3 — FLOAT IS THE PHONE DEFAULT ("at 100% zoom it eats the whole
+    // screen"): notes open in a centered, draggable window; `phoneDocked`
+    // is the opt-out back to the classic bottom sheet.
+    phoneDocked: false, floatX: null, floatY: null, floatW: null, floatH: null,
   };
 
   const state = {
@@ -1009,16 +1046,16 @@ export function setup(ctx) {
         <div class="nh-mhead">
           <span class="nh-mtitle">${ICONS.notebook.replace('width="20" height="20"', 'width="17" height="17"')}<span class="nh-mt-text">Notehaven</span></span>
           <div class="nh-search">${ICONS.search}<input type="text" placeholder="Search notes, #tags…" spellcheck="false"></div>
-          <button class="nh-iconbtn nh-ws-back" title="Back in history">◀</button>
-          <button class="nh-iconbtn nh-ws-fwd" title="Forward in history">▶</button>
+          <button class="nh-iconbtn nh-ws-back" title="Back in history">${ICONS.chevL}</button>
+          <button class="nh-iconbtn nh-ws-fwd" title="Forward in history">${ICONS.chevR}</button>
           <button class="nh-iconbtn nh-rail-toggle" title="Toggle note list">${ICONS.list}</button>
-          <button class="nh-iconbtn nh-ws-min" title="Minimize to header">—</button>
-          <button class="nh-iconbtn nh-ws-full" title="Fullscreen workspace">⛶</button>
-          <button class="nh-iconbtn nh-themebtn" title="Switch to light theme" style="font-size:14px">☀️</button>
+          <button class="nh-iconbtn nh-ws-min" title="Minimize to header">${ICONS.minus}</button>
+          <button class="nh-iconbtn nh-ws-full" title="Fullscreen workspace">${ICONS.expand}</button>
+          <button class="nh-iconbtn nh-themebtn" title="Switch to light theme">${ICONS.sun}</button>
           <button class="nh-iconbtn nh-settings-btn" title="Notehaven settings — appearance, CSS, themes">${ICONS.gear}</button>
           <button class="nh-newbtn">${ICONS.plus}<span>New note</span></button>
-          <button class="nh-iconbtn nh-morebtn" title="Import / Export" style="font-size:17px;font-weight:800;line-height:1;padding-bottom:4px">⋯</button>
-          <button class="nh-mclose" title="Close (Esc)">✕</button>
+          <button class="nh-iconbtn nh-morebtn" title="Import / Export">${ICONS.moreH}</button>
+          <button class="nh-mclose" title="Close (Esc)">${ICONS.x}</button>
         </div>
         <div class="nh-mbody">
           <div class="nh-listwrap">
@@ -1041,11 +1078,11 @@ export function setup(ctx) {
               <span class="nh-crumb" title="Lives in this folder">📥</span>
               <input class="nh-title" type="text" placeholder="Untitled Note" spellcheck="false">
               <div class="nh-modegroup">
-                <button class="nh-modebtn" data-mode="write">✍ Live</button>
-                <button class="nh-modebtn" data-mode="read">📖 Read</button>
-                <button class="nh-modebtn" data-mode="source">⌨ Source</button>
+                <button class="nh-modebtn" data-mode="write">${ICONS.pen}<span>Live</span></button>
+                <button class="nh-modebtn" data-mode="read">${ICONS.bookOpen}<span>Read</span></button>
+                <button class="nh-modebtn" data-mode="source">${ICONS.code}<span>Source</span></button>
               </div>
-              <button class="nh-iconbtn nh-ed-more" title="Note options — split, find, move, export…" style="font-size:16px;font-weight:800;line-height:1;padding-bottom:3px">⋮</button>
+              <button class="nh-iconbtn nh-ed-more" title="Note options — split, find, move, export…">${ICONS.moreV}</button>
               <button class="nh-iconbtn nh-pinbtn" title="Pin note">${ICONS.pin}</button>
               <button class="nh-iconbtn danger nh-delbtn" title="Delete note">${ICONS.trash}</button>
             </div>
@@ -1058,7 +1095,7 @@ export function setup(ctx) {
               <input class="nh-replace-in" type="text" placeholder="Replace with…" spellcheck="false">
               <button class="nh-iconbtn nh-replace-one" title="Replace current match">⇄</button>
               <button class="nh-iconbtn nh-replace-all" title="Replace all">⇄⇄</button>
-              <button class="nh-iconbtn nh-find-close" title="Close find">✕</button>
+              <button class="nh-iconbtn nh-find-close" title="Close find">${ICONS.x}</button>
             </div>
             <div class="nh-canvas">
               <div class="nh-surfacewrap nh-scroll">
@@ -1138,12 +1175,84 @@ export function setup(ctx) {
     setTimeout(syncTopBtn, 350);
   });
 
+  /* 2.2.1 — portrait seat watchdog. Some phones/webviews report exotic
+     viewport/inset values; if that math EVER pushes the header off-screen in
+     portrait, we clear positioning and reseat the sheet instead of leaving
+     the user with no topbar. Landscape (desktop modal path) is untouched. */
+  const nurseSheetIntoView = () => {
+    if ((window.innerWidth || 1280) > 560 || !state.modalOpen) return; // phones/portrait sheet only
+    if (isPhoneFloat()) { applyPhoneFloat(); return; } // 2.5.0 — float self-clamps, never nuke it
+    const r = mheadEl.getBoundingClientRect();
+    const bad = !r || r.height === 0 || r.top < -2 || r.bottom < 24 || r.top > nhViewH() - 24;
+    if (!bad) return;
+    state.settings.ui.sheetH = null;
+    state.settings.ui.modalX = null;
+    state.settings.ui.modalY = null;
+    applySheetHeight(null);
+    modalEl.classList.remove('nh-anchored');
+    modalEl.style.left = '';
+    modalEl.style.top = '';
+    // 2.2.3 tier-2: webviews that ignore dvh AND vars get RAW measured pixels
+    modalEl.style.height = nhViewH() + 'px';
+    modalEl.style.marginTop = 'auto';
+  };
+
+  /* 2.5.0 — PHONE FLOAT WINDOW. The bottom sheet is great until it covers
+     most of a small screen (user feedback: "sits in the middle instead").
+     Float mode undocks the UI into a real, centered, DRAGGABLE window —
+     the grab pill becomes a move handle (touch pointer events, works on any
+     Android/iOS). Double-tap the pill to jump back to the middle. */
+  const isPhoneFloat = () => (window.innerWidth || 1280) <= 560 && !state.settings.ui.phoneDocked; // 2.5.3 — float by default
+  const applyPhoneFloat = () => {
+    const u = state.settings.ui;
+    const vw = window.innerWidth || 390;
+    const vh = nhViewH();
+    const w = Math.max(260, Math.min(vw - 12, u.floatW || Math.min(vw - 12, 460)));
+    const h = Math.max(280, Math.min(vh - 20, u.floatH || Math.round(Math.min(vh * 0.78, 640))));
+    // first float (or reset): SIT IN THE MIDDLE — the exact ask
+    const x0 = u.floatX == null ? Math.round((vw - w) / 2) : u.floatX;
+    const y0 = u.floatY == null ? Math.round((vh - h) * 0.38) : u.floatY;
+    const x = nhClamp(x0, 8, Math.max(8, vw - 90));
+    const y = nhClamp(y0, 8, Math.max(8, vh - 46));
+    modalEl.classList.add('nh-anchored', 'nh-floatwin');
+    modalEl.classList.remove('nh-sheet-win');
+    modalEl.style.left = `${Math.round(x)}px`;
+    modalEl.style.top = `${Math.round(y)}px`;
+    modalEl.style.width = `${Math.round(w)}px`;
+    modalEl.style.height = `${Math.round(h)}px`;
+    modalEl.style.marginTop = '';
+    modalEl.style.removeProperty('--nh-sheet-h');
+    sheetHandle.title = 'Drag to move · double-tap to re-center';
+    if (u.floatX != null && (x !== u.floatX || y !== u.floatY)) { u.floatX = Math.round(x); u.floatY = Math.round(y); } // self-heal after rotate/keyboard
+    if (!state._floatIntro) { // 2.5.3 — tell phone users the new default exists (dock-back is one tap)
+      state._floatIntro = true;
+      setTimeout(() => toast('info', '🎈 Notes now float in a draggable window on phones — move it by the top pill. Prefer the full sheet? ⋯ menu → Dock to bottom.'), 650);
+    }
+  };
+  const clearPhoneFloat = () => {
+    if (!modalEl.classList.contains('nh-floatwin')) return;
+    modalEl.classList.remove('nh-floatwin');
+    modalEl.style.marginTop = '';
+    sheetHandle.title = 'Drag to resize · double-tap for full screen';
+  };
+  const togglePhoneFloat = () => {
+    state.settings.ui.phoneDocked = !state.settings.ui.phoneDocked;
+    saveSettingsSoon();
+    applyUi();
+    nurseSheetIntoView();
+    toast('info', state.settings.ui.phoneDocked
+      ? 'Docked to the bottom 📌 back to the classic phone sheet.'
+      : 'Float window ON 🎈 drag the UI anywhere by the top pill · double-tap the pill to re-center.');
+  };
+
   /* 2.1.5 — phone sheet: drag the grab pill to size 55%..100% of the screen,
      persisted per user; double-tap snaps back to full screen. Android and
      iOS both supported (same pointer events); desktop never sees the pill. */
   const sheetHandle = overlayWrap.querySelector('.nh-sheeth');
   const applySheetHeight = (px) => {
-    const vh = window.innerHeight || 700;
+    const vh = nhViewH();
+    modalEl.style.height = ''; // release any tier-2 watchdog override
+    modalEl.style.setProperty('--nh-vvh', nhViewH() + 'px'); // CSS fallback chain starts from truth
     if (!px) {
       modalEl.style.removeProperty('--nh-sheet-h');
       modalEl.classList.remove('nh-sheet-win');
@@ -1155,20 +1264,41 @@ export function setup(ctx) {
   };
   let sheetDrag = null;
   sheetHandle.addEventListener('pointerdown', (e) => {
-    sheetDrag = { id: e.pointerId, sy: e.clientY, sh: modalEl.getBoundingClientRect().height, h: 0 };
+    sheetDrag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, sh: modalEl.getBoundingClientRect().height, h: 0, fx: state.settings.ui.floatX, fy: state.settings.ui.floatY, moved: false };
     try { sheetHandle.setPointerCapture(e.pointerId); } catch { /* older engines */ }
     sheetHandle.classList.add('nh-grab');
   });
   sheetHandle.addEventListener('pointermove', (e) => {
     if (!sheetDrag || e.pointerId !== sheetDrag.id) return;
+    if (isPhoneFloat()) {
+      // 2.5.0 — the pill is now a MOVE handle: drag the whole UI anywhere
+      const vw = window.innerWidth || 390;
+      const vh = nhViewH();
+      const r = modalEl.getBoundingClientRect();
+      const w = r.width || (vw - 12);
+      const h = r.height || Math.round(vh * 0.78);
+      const ox = sheetDrag.fx == null ? Math.round((vw - w) / 2) : sheetDrag.fx;
+      const oy = sheetDrag.fy == null ? Math.round((vh - h) * 0.38) : sheetDrag.fy;
+      const nx = nhClamp(ox + (e.clientX - sheetDrag.sx), 8, Math.max(8, vw - 90));
+      const ny = nhClamp(oy + (e.clientY - sheetDrag.sy), 8, Math.max(8, vh - 46));
+      sheetDrag.nx = Math.round(nx); sheetDrag.ny = Math.round(ny); sheetDrag.moved = true;
+      modalEl.style.left = `${sheetDrag.nx}px`;
+      modalEl.style.top = `${sheetDrag.ny}px`;
+      return;
+    }
     sheetDrag.h = sheetDrag.sh + (sheetDrag.sy - e.clientY);
     applySheetHeight(sheetDrag.h);
   });
   const sheetEnd = (e) => {
     if (!sheetDrag || (e && e.pointerId !== undefined && e.pointerId !== sheetDrag.id)) return;
     sheetHandle.classList.remove('nh-grab');
+    if (sheetDrag.moved && isPhoneFloat()) {
+      state.settings.ui.floatX = sheetDrag.nx;
+      state.settings.ui.floatY = sheetDrag.ny;
+      saveSettingsSoon();
+    }
     if (sheetDrag.h) {
-      const vh = window.innerHeight || 700;
+      const vh = nhViewH();
       state.settings.ui.sheetH = sheetDrag.h >= vh - 4 ? null : Math.round(sheetDrag.h);
       if (sheetDrag.h >= vh - 4) applySheetHeight(null);
       saveSettingsSoon();
@@ -1178,8 +1308,14 @@ export function setup(ctx) {
   sheetHandle.addEventListener('pointerup', sheetEnd);
   sheetHandle.addEventListener('pointercancel', sheetEnd);
   sheetHandle.addEventListener('dblclick', () => {
-    state.settings.ui.sheetH = null;
-    applySheetHeight(null);
+    if (isPhoneFloat()) {
+      state.settings.ui.floatX = null;
+      state.settings.ui.floatY = null;
+      applyPhoneFloat(); // 2.5.0 — back to the middle
+    } else {
+      state.settings.ui.sheetH = null;
+      applySheetHeight(null);
+    }
     saveSettingsSoon();
   });
   const crumbEl = overlayWrap.querySelector('.nh-crumb');
@@ -1204,6 +1340,8 @@ export function setup(ctx) {
   function openModal(noteId) {
     state.modalOpen = true;
     overlay.classList.add('nh-open');
+    setTimeout(nurseSheetIntoView, 60); // portrait: the topbar must exist
+    setTimeout(nurseSheetIntoView, 480); // …and again once fonts/insets settle
     if (state.ws) buildWs(); // seats the editor into the focused pane
     if (noteId && noteId !== state.currentId && metaOf(noteId)) openNote(noteId);
     else if (state.currentId) { renderList(); renderPreview(); }
@@ -1260,7 +1398,7 @@ export function setup(ctx) {
   launchRoot.className = 'nh-root nh-launch nh-scroll';
   launchRoot.innerHTML = `
     <div class="nh-brand">
-      <div class="nh-brandmark">🌙</div>
+      <div class="nh-brandmark">${ICONS.moon}</div>
       <h2>Notehaven</h2>
       <p>A cozy little haven for your thoughts.</p>
     </div>
@@ -2539,6 +2677,10 @@ export function setup(ctx) {
     items.push({ key: 'exp-all', label: '🗄 Export ALL notes (backup .json)' });
     items.push({ key: 'd1', label: '', type: 'divider' });
     items.push({ key: 'import', label: '⬆ Import notes (.md / .json)…' });
+    if ((window.innerWidth || 1280) <= 560) { // 2.5.0 — the drag-anywhere window, one tap away
+      items.push({ key: 'd2', label: '', type: 'divider' });
+      items.push({ key: 'phone-float', label: state.settings.ui.phoneDocked ? '🎈 Float window — drag the UI around' : '📌 Dock the UI to the bottom', active: !state.settings.ui.phoneDocked });
+    }
     const rect = moreBtn.getBoundingClientRect();
     const { selectedKey } = await ctx.ui.showContextMenu({
       position: { x: Math.max(12, rect.right - 250), y: rect.bottom + 8 },
@@ -2548,6 +2690,7 @@ export function setup(ctx) {
     else if (selectedKey === 'exp-json' && meta) exportNoteJson(meta);
     else if (selectedKey === 'exp-all') exportAll();
     else if (selectedKey === 'import') importFlow();
+    else if (selectedKey === 'phone-float') togglePhoneFloat();
   });
 
   /* ---------------- toolbar (live surface) ---------------- */
@@ -3360,10 +3503,22 @@ export function setup(ctx) {
     const el = document.createElement('div');
     el.className = 'nh-halo nh-halo-float';
     el.style.setProperty('--halo-size', `${logo.size}px`);
+    el.title = 'Notehaven — tap for notes · drag to move · right-click / long-press: menu'; // 2.4.2
     const img = document.createElement('img');
     img.src = state.logoSrc;
-    img.alt = 'Halo';
+    img.alt = 'Notehaven';
     img.draggable = false;
+    // 2.4.2 — a dead logo image used to leave INVISIBLE GLASS (div had no
+    // body of its own). Swap to the built-in moon-book and say it happened.
+    img.addEventListener('error', () => {
+      if (img.src === defaultLogoDataUrl()) return; // already on the fallback
+      state.logoSrc = defaultLogoDataUrl();
+      img.src = state.logoSrc;
+      if (!state._logoHealToasted) {
+        state._logoHealToasted = true;
+        toast('info', 'Notehaven logo image failed to load — restored the built-in moon-book orb.');
+      }
+    });
     el.appendChild(img);
     haloImgEl = img;
     return el;
@@ -3409,6 +3564,15 @@ export function setup(ctx) {
   }
 
   const nhClamp = (v, lo, hi) => Math.min(Math.max(v, lo), Math.max(lo, hi));
+  // 2.2.2 — the ONLY trustworthy height on a phone: visualViewport (excludes
+  // URL bars/insets/keyboard). innerHeight & even 100dvh lie on some
+  // webviews; falling back gracefully when the API is missing.
+  const nhViewH = () => {
+    const vv = window.visualViewport && window.visualViewport.height;
+    const ih = window.innerHeight;
+    const h = Math.min(vv || Infinity, ih || Infinity);
+    return Math.round(Number.isFinite(h) ? h : 700);
+  };
 
   function placeHaloBubble(px, py) {
     if (!haloBubbleEl) return;
@@ -3507,7 +3671,9 @@ export function setup(ctx) {
     // say hello once per session so first-time users know it's alive
     if (!state._haloSaidHello && logo.visible) {
       state._haloSaidHello = true;
-      setTimeout(() => toast('info', 'Notehaven logo ✨ tap to open notes · drag to move · long-press for sizes'), 900);
+      el.classList.add('nh-hi'); // 2.4.2 visual "here I am!"
+      setTimeout(() => el.classList.remove('nh-hi'), 2600);
+      setTimeout(() => toast('info', 'Notehaven is the pulsing moon-book orb 🌙📖 tap it for your notes'), 900);
     }
 
     // self-heal watchdog: if the host somehow eats the bubble (detached or
@@ -3515,7 +3681,7 @@ export function setup(ctx) {
     state._haloWdAttempts = state._haloWdAttempts || 0;
     setTimeout(() => {
       const cur = haloBubbleEl;
-      const ok = cur && cur.isConnected && cur.getBoundingClientRect().width > 0;
+      const ok = cur && cur.isConnected && (state.settings.logo.visible ? cur.getBoundingClientRect().width > 0 : true); // hidden on purpose = healthy
       if (ok) { state._haloWdAttempts = 0; return; }
       if (state._haloWdAttempts < 3) {
         state._haloWdAttempts += 1;
@@ -3575,6 +3741,7 @@ export function setup(ctx) {
   function resetHaloPosition() {
     state.settings.logo.x = null;
     state.settings.logo.y = null;
+    if (!state.settings.logo.visible) setHaloVisible(true); // 2.4.1 — 'reset' also un-hides
     const d = haloDefaultPos();
     placeHaloBubble(d.x, d.y);
     posRead.textContent = `x: ${Math.round(d.x)}, y: ${Math.round(d.y)}`;
@@ -3637,7 +3804,7 @@ export function setup(ctx) {
         <div class="nh-mhead">
           <span class="nh-mtitle">${ICONS.gear} <span class="nh-mt-text">Settings</span></span>
           <span style="flex:1"></span>
-          <button class="nh-mclose nh-sc-close" title="Close">✕</button>
+          <button class="nh-mclose nh-sc-close" title="Close">${ICONS.x}</button>
         </div>
           <div class="nh-sbody nh-scroll">
           <!-- Halo controls are prepended here (they used to be a separate tab) -->
@@ -3816,6 +3983,7 @@ export function setup(ctx) {
     <button class="nh-btn nh-ws-reset">🧹 Reset to one pane</button>`;
   editorCard.appendChild(wsResetField);
   wsResetField.querySelector('.nh-ws-reset').addEventListener('click', () => resetWorkspaceLayout());
+  editorCard.appendChild(prefSwitch('📌 Dock to bottom — classic sheet (phones)', 'Phones now open notes in a centered floating window you drag by the top pill. Turn this on to use the old full-screen bottom sheet instead.', () => !!U2().phoneDocked, (v) => { U2().phoneDocked = v; }, () => { applyUi(); nurseSheetIntoView(); }));
 
   const navCard = document.createElement('div');
   navCard.className = 'nh-card';
@@ -3911,7 +4079,7 @@ export function setup(ctx) {
       if (u.accent) rootEl.style.setProperty('--lumiverse-accent', u.accent);
       else rootEl.style.removeProperty('--lumiverse-accent');
     }
-    themeBtn.textContent = light ? '🌙' : '☀️';
+    themeBtn.innerHTML = light ? ICONS.moon : ICONS.sun; // 2.5.1 — real vectors, no emoji
     themeBtn.title = light ? 'Switch to dark theme' : 'Switch to light theme';
     if (uiTheme) uiTheme.value = u.theme || 'auto';
     modalEl.style.setProperty('--nh-editor-fs', `${u.fontSize}px`);
@@ -3944,9 +4112,12 @@ export function setup(ctx) {
       modalEl.style.left = '';
       modalEl.style.top = '';
     }
-    if (!showSheet) applySheetHeight(u.sheetH || null); // phones: re-seat the sheet
+    // 2.5.0 — phones choose: bottom sheet (default) or a real FLOATING window
+    if (!showSheet && isPhoneFloat()) applyPhoneFloat();
+    else { clearPhoneFloat(); if (!showSheet) applySheetHeight(u.sheetH || null); }
+    nurseSheetIntoView();
     modalEl.classList.toggle('nh-min', !!u.minimized);
-    wsMinBtn.textContent = u.minimized ? '▢' : '—';
+    wsMinBtn.innerHTML = u.minimized ? ICONS.square : ICONS.minus; // 2.5.2 — vector states
     wsMinBtn.title = u.minimized ? 'Restore the workspace' : 'Minimize to header';
 
     // custom background picture — a theme-aware "veil" (color-mix of --nh-bg)
@@ -4157,13 +4328,23 @@ export function setup(ctx) {
   disposers.push(notesAction.onClick(() => openModal()));
 
   // keep the self-rendered bubble inside the viewport on rotate/resize
-  const onViewportResizeHalo = () => {
+  const onViewportResizeHalo = debounce(() => {
     if (haloBubbleEl && Number.isFinite(state.settings.logo.x)) {
       placeHaloBubble(state.settings.logo.x, state.settings.logo.y);
     }
-  };
+    // rotating the phone: re-clamp the sheet/modal and verify the header seat
+    applyUi();
+    nurseSheetIntoView();
+  }, 120);
   window.addEventListener('resize', onViewportResizeHalo);
+  window.addEventListener('orientationchange', onViewportResizeHalo);
   disposers.push(() => window.removeEventListener('resize', onViewportResizeHalo));
+  disposers.push(() => window.removeEventListener('orientationchange', onViewportResizeHalo));
+  // mobile truth channel: URL bar show/hide, pinch zoom, and the keyboard
+  if (window.visualViewport && window.visualViewport.addEventListener) {
+    window.visualViewport.addEventListener('resize', onViewportResizeHalo);
+    disposers.push(() => window.visualViewport.removeEventListener('resize', onViewportResizeHalo));
+  }
 
   // a folder picture that 404s (deleted/GC'd image) becomes 📁, never a broken box
   const nhFolderIconErr = (e) => {
@@ -4707,7 +4888,7 @@ export function setup(ctx) {
     state.fullscreen = !state.fullscreen;
     modalEl.classList.toggle('nh-full', state.fullscreen);
     wsFullBtn.classList.toggle('is-active', state.fullscreen);
-    wsFullBtn.textContent = state.fullscreen ? '🗗' : '⛶';
+    wsFullBtn.innerHTML = state.fullscreen ? ICONS.compress : ICONS.expand; // 2.5.2 — vector states
   });
 
   let dragPos = null;
@@ -5083,12 +5264,37 @@ export function setup(ctx) {
 
   (async () => {
     try {
-      const [{ settings }, { index }, { dataUrl }] = await Promise.all([
-        rpc('get_settings'),
-        rpc('list_notes'),
-        rpc('get_logo'),
+      // 2.2.4 — the backend may still be waking up (fresh update / cold
+      // worker): retry the handshake, then DEGRADE instead of dying. A red
+      // "failed to start: request timed out" toast + a dead extension was the
+      // old behavior; now the UI always opens and simply re-syncs on reopen.
+      const attemptLoad = () => Promise.all([
+        rpc('get_settings', {}, 45000),
+        rpc('list_notes', {}, 45000),
+        rpc('get_logo', {}, 45000),
       ]);
-      state.settings = settings;
+      let settings = null, index = { notes: [], folders: [] }, dataUrl = null, awake = false, lastErr = null;
+      for (let attempt = 1; attempt <= 3 && !awake; attempt++) {
+        try {
+          const pack = await attemptLoad();
+          settings = pack[0] ? pack[0].settings : null;
+          index = (pack[1] && pack[1].index) || { notes: [], folders: [] };
+          dataUrl = pack[2] ? pack[2].dataUrl : null;
+          awake = true;
+        } catch (err) {
+          lastErr = err;
+          if (attempt < 3) {
+            toast('info', `Notehaven is waking the backend… (attempt ${attempt}/3)`);
+            await new Promise((r) => setTimeout(r, 1800));
+          }
+        }
+      }
+      if (!awake) {
+        toast('warning', `Notehaven backend didn't answer (${lastErr?.message || 'timeout'}) — opened with defaults; your notes are safe, close & reopen in a few seconds.`);
+      } else if (!settings) {
+        toast('warning', 'Notehaven: saved settings unreadable — using defaults (your notes are safe).');
+      }
+      state.settings = settings || JSON.parse(JSON.stringify(state.settings));
       // forward-compatible defaults for older saves (theme & collapsed arrive with 1.6)
       state.settings.ui = { theme: 'auto', collapsed: [], bgImageId: '', bgDim: 0.85, navSort: 'updated-desc', navOrder: ['shortcuts', 'recent', 'tree', 'tags'], navSearch: false, ...state.settings.ui };
       if (!Array.isArray(state.settings.ui.collapsed)) state.settings.ui.collapsed = [];
@@ -5107,6 +5313,12 @@ export function setup(ctx) {
       state.settings.ui = { ...NH_UI_DEFAULTS, ...state.settings.ui };
       state.settings.ui.navCounters = { ...NH_UI_DEFAULTS.navCounters, ...(state.settings.ui.navCounters || {}) };
       state.settings.ui.ifaceIcons = { ...NH_UI_DEFAULTS.ifaceIcons, ...(state.settings.ui.ifaceIcons || {}) };
+      // 2.4.1 — the logo block was never merged at boot: an old/corrupt save
+      // without it (or a garbage size) made createHalo() throw and the Halo
+      // silently never existed. Merge it like every other settings section.
+      if ('phoneFloat' in state.settings.ui) delete state.settings.ui.phoneFloat; // 2.5.3 — legacy key, semantics inverted
+      state.settings.logo = { size: 64, visible: true, snapToEdge: true, x: null, y: null, ...(state.settings.logo || {}) };
+      if (!Number.isFinite(state.settings.logo.size) || state.settings.logo.size < 24 || state.settings.logo.size > 256) state.settings.logo.size = 64;
       wsInit(); // rebuild tabs/groups/splits from the saved layout
       canvas.classList.add(`nh-mode-${state.settings.editor.mode}`);
       modeBtns.forEach((b) => b.classList.toggle('is-active', b.dataset.mode === state.settings.editor.mode));
@@ -5118,6 +5330,22 @@ export function setup(ctx) {
         // the logo must survive even if the rest of boot had a hiccup
         toast('warning', `Notehaven logo failed: ${haloErr?.message || haloErr}`);
       }
+      // 2.4.1 — rescue kit: if the bubble STILL isn't on the page a moment
+      // later, force sane defaults and rebuild it, out loud. This can only
+      // make the Halo APPEAR, never hide it.
+      setTimeout(() => {
+        try {
+          if (!haloBubbleEl || !haloBubbleEl.isConnected) {
+            state.settings.logo.visible = true;
+            state.settings.logo.x = null;
+            state.settings.logo.y = null;
+            createHalo();
+            toast('info', 'Halo rescued ✨ the floating logo is back — drag it anywhere.');
+          } else if (!state.settings.logo.visible) {
+            toast('info', "The Halo is hidden by your settings — bring it back via the Extras 'toggle-halo' action, or Settings → Logo → Show logo.");
+          }
+        } catch (_) {}
+      }, 2000);
       syncInputBarLabel();
       renderList();
       refreshDrawerRecent();

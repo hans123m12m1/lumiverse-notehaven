@@ -16,6 +16,137 @@ No build step required — `dist/` is hand-written, dependency-free ES2022 and i
 
 ---
 
+## What's new in 2.5.3 — float is now the phone DEFAULT 📱🎈
+
+"At 100% zoom it really does eat the whole screen." Fixed properly: **phones
+now open notes in the centered, draggable float window by default** — no
+full-screen sheet unless you ask for it.
+
+- 📱 Existing phone users are **migrated** too (the old `phoneFloat` key is
+  swept at boot) — nobody needs to find a hidden toggle.
+- 🎈 One-time intro toast explains the new window and where the dock-back
+  lives: ⋯ menu → **Dock to bottom**, or Settings → Editor →
+  **"Dock to bottom — classic sheet"**.
+- Everything from 2.5.0 still applies: drag by the top pill, double-tap to
+  re-center, position persists, keyboard-safe clamps.
+
+## What's new in 2.5.2 — the whole header went vector ✨
+
+Emoji → SVG, everywhere in the chrome (requested with a very reasonable
+annotated screenshot): history ◀▶, minimize/fullscreen (including their
+toggled states), ⋯ and ⋮ menus, ✕ closes (header, find, settings), the ✍
+Live / 📖 Read / ⌨ Source mode pills — now pen, open-book and code-bracket
+vectors — plus the drawer brandmark moon. All inherit the accent color and
+stay pixel-crisp on any screen.
+
+## What's new in 2.5.1 — real sun & moon icons ☀️🌙➜✨
+
+Friend request: the theme toggle's ☀️/🌙 emoji are now **real vector SVG
+icons** (feather-style sun + crescent moon). They stay razor-sharp at any
+size, inherit the accent color like every other Notehaven icon, and the
+button keeps its tooltips. Icon buttons also got a sizing rule so any future
+SVG drops in perfectly.
+
+## What's new in 2.5.0 — phone float window 🎈
+
+For Android (and any phone): the notes UI no longer HAS to be a full-screen
+bottom sheet. Flip **Float window** and it becomes a real little window in
+the middle of your screen that you drag around.
+
+- 🎈 **Float toggle** — topbar ⋯ menu → *"Float window — drag the UI around"*
+  (also in Settings → Editor). One tap, applies live, remembers your choice.
+- 🖐 **Drag the whole UI anywhere** — the grab pill on top becomes a move
+  handle (touch pointer events, Android + iOS). Position persists.
+- 🎯 **Sits in the middle** — first float opens centered at ~78% height, the
+  exact "the sheet covers most of their screen" complaint, solved.
+- 👆 **Double-tap the pill** → jumps back to the middle.
+- Keyboard opening or rotating the phone re-clamps the window so its header
+  is never lost off-screen; nurse watchdog leaves float mode intact.
+
+## What's new in 2.4.2 — the Halo you'll actually recognize 🌙📖
+
+Plot twist from a user screenshot: the Halo was alive all along — the old
+default logo (a plain lavender sparkle) looked EXACTLY like the host's own
+floating buttons, so nobody could pick it out of the crowd. And if its image
+ever failed to decode, the bubble had no body of its own = invisible glass
+that every health check called "fine". Now:
+
+- **New default glyph** — a crescent moon over an open book on the lavender
+  orb. It reads as *notes*, not as yet another AI-sparkle button.
+- **A real body** — the orb now has an accent-tinted backdrop + ring, so it
+  is visible even while an image is loading or if one fails.
+- **Dead-logo self-heal** — a broken custom logo swaps back to the built-in
+  orb automatically, with a one-time toast saying it happened.
+- **'Here I am' pulse** — after install/update it pulses twice and the hello
+  toast literally describes what to look for. Plus a hover tooltip.
+
+## What's new in 2.4.1 — Halo rescue kit 🛟
+
+Still the stable 2.2.4 code — plus four small, purely-additive safeties that
+can only make the Halo APPEAR, never hide it:
+
+- **The logo-block merge** — the smoking gun. Boot merged every settings
+  section except `logo`, so an old/corrupt save without it (or with a
+  nonsense size) made `createHalo()` throw and the Halo silently never
+  existed. Old saves now get healed defaults (`64px · visible · snap`).
+- **Boot rescue timer** — 2s after start, if the bubble truly isn't on the
+  page, it's force-rebuilt with sane defaults and a "Halo rescued ✨" toast.
+- **Honest hidden state** — if the Halo is simply *hidden* by the 🙈 option,
+  Notehaven says so and points at the way back (Extras → `toggle-halo`, or
+  Settings → Logo → Show logo); "Reset spot" now un-hides it too, and the
+  watchdog stops false-warning "browser blocked the logo" on purpose-hides.
+
+## What's new in 2.4.0 — rollback to the stable 2.2.4 build 🔙
+
+You asked, you got it: this release is **exactly the 2.2.4 code** — the
+last build where the Halo and the whole workspace behaved on your install.
+The 2.3.0 "visual-viewport seat" and 2.3.1 "unphaseable halo" experiments
+are **fully removed**, not layered over. (It's *numbered* 2.4.0 only so the
+Extensions panel accepts it as an update over the broken 2.3.1 — inside,
+it's your good old 2.2.4.)
+
+- ✅ Everything 2.2.4 had: boot retry + degrade, folder-icon healing,
+  workspace mending, note imports, safe-area sheet, sideways-scrolling
+  topbar, top-scroll pill, right-click menu fix.
+- 🗑 Everything 2.3.x removed: overlay viewport pinning, anti-zoom font
+  overrides, halo viewport-box clamping.
+
+## What's new in 2.2.4
+
+- **No more `failed to start: request timed out (get_settings)`.** Right
+  after an update the backend worker can still be spinning up — Notehaven now
+  retries the handshake (3×, with progress toasts and a 45s window), and if
+  the backend truly won't answer, the panel **opens anyway with defaults**
+  instead of dying. Your notes stay safe on disk; closing and reopening a few
+  seconds later re-syncs everything.
+
+## What's new in 2.2.3
+
+- Even on webviews that ignore **both** `dvh` and CSS variables, the portrait
+  sheet now snaps into place: when the seat watchdog detects the topbar off-
+  screen it forces **raw measured pixel geometry** (visualViewport) directly
+  onto the panel — nothing left for the browser to misinterpret. The pill's
+  manual sizing releases that override automatically.
+
+## What's new in 2.2.2 — every-screen portrait fix 📐
+
+- Root cause of the clipped portrait topbar: mobile browsers **lie about the
+  viewport height** (`100vh`/`100dvh`/`innerHeight` all include space hidden
+  under URL bars or notches — some webviews don't even support `dvh`).
+- The sheet is now sized by **`visualViewport.height`** measured in JS —
+  the actual visible area on ANY device — and re-measured automatically when
+  the URL bar shows/hides, the keyboard opens, or you pinch-zoom.
+- The seat watchdog (2.2.1) now also catches a header clipped above the
+  screen using the same measured truth.
+
+## What's new in 2.2.1
+
+- **Portrait topbar can never get lost again.** Notch handling moved out of
+  fragile negative-margin math into the grab handle itself, and a seat
+  watchdog checks the header is on-screen every time the panel opens, rotates
+  or resizes — if a weird phone/webview ever pushes it away, the sheet is
+  reseated automatically. Landscape/desktop layout is untouched.
+
 ## What's new in 2.2.0 — "mend my mess" release 🧹
 
 - **Split-graveyard fix:** panes that multiplied into a field of
