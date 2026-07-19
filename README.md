@@ -16,6 +16,31 @@ No build step required — `dist/` is hand-written, dependency-free ES2022 and i
 
 ---
 
+## What's new in 2.5.7 — float window drag desync, fixed 🤝📱
+
+Android report (with gif): after dragging, the window ended up half off the
+right edge and wouldn't come back — it "didn't sync" with the finger. Two
+causes, both fixed:
+
+- 🧲 **Off-screen clamp bug** — the drag/seat math reused the desktop rule
+  (keep a 90px strip reachable). On a phone the window is nearly
+  screen-wide, so that rule parked it ~70% off the right edge, and the
+  self-heal kept "healing" it right back there. Now the clamp keeps the
+  **whole window inside the screen**, always — old bad positions snap back
+  into view automatically on the next open.
+- 🖐 **Mid-drag snap-back** — viewport events could re-seat the window to
+  its *pre-drag* spot while your finger was still moving. The seat engine
+  now politely waits until you let go.
+
+## What's new in 2.5.6 — the Halo is a singleton 👯‍♂️➜🌙
+
+"The icon is multiplying." Cause found: after an in-place extension
+*Update*, the old script's bubble stays orphaned in the page while the new
+one mounts its own — so two (or more) orbs pile up. Now every Halo birth
+sweeps **every** `.nh-halo-float` on the page before mounting, so exactly
+one orb can exist — across updates, watchdog rebuilds, rescue timers,
+anything.
+
 ## What's new in 2.5.5 — clear backdrop 👁
 
 "Moving it works, but I want to put it next to the chat without the

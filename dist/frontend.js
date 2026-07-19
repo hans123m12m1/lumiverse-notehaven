@@ -1209,6 +1209,7 @@ export function setup(ctx) {
      Android/iOS). Double-tap the pill to jump back to the middle. */
   const isPhoneFloat = () => (window.innerWidth || 1280) <= 560 && !state.settings.ui.phoneDocked; // 2.5.3 — float by default
   const applyPhoneFloat = () => {
+    if (sheetDrag) return; // 2.5.7 — never fight the user's finger mid-drag
     const u = state.settings.ui;
     const vw = window.innerWidth || 390;
     const vh = nhViewH();
@@ -1217,8 +1218,11 @@ export function setup(ctx) {
     // first float (or reset): SIT IN THE MIDDLE — the exact ask
     const x0 = u.floatX == null ? Math.round((vw - w) / 2) : u.floatX;
     const y0 = u.floatY == null ? Math.round((vh - h) * 0.38) : u.floatY;
-    const x = nhClamp(x0, 8, Math.max(8, vw - 90));
-    const y = nhClamp(y0, 8, Math.max(8, vh - 46));
+    // 2.5.7 — the WHOLE window must stay inside: the old desktop rule
+    // (vw-90) let a phone-wide window park ~70% off the right edge and the
+    // self-heal kept re-applying that same wrong max (the "desync" gif).
+    const x = nhClamp(x0, 4, Math.max(4, vw - w - 4));
+    const y = nhClamp(y0, 4, Math.max(4, vh - 46));
     modalEl.classList.add('nh-anchored', 'nh-floatwin');
     modalEl.classList.remove('nh-sheet-win');
     modalEl.style.left = `${Math.round(x)}px`;
@@ -1284,8 +1288,8 @@ export function setup(ctx) {
       const h = r.height || Math.round(vh * 0.78);
       const ox = sheetDrag.fx == null ? Math.round((vw - w) / 2) : sheetDrag.fx;
       const oy = sheetDrag.fy == null ? Math.round((vh - h) * 0.38) : sheetDrag.fy;
-      const nx = nhClamp(ox + (e.clientX - sheetDrag.sx), 8, Math.max(8, vw - 90));
-      const ny = nhClamp(oy + (e.clientY - sheetDrag.sy), 8, Math.max(8, vh - 46));
+      const nx = nhClamp(ox + (e.clientX - sheetDrag.sx), 4, Math.max(4, vw - w - 4)); // 2.5.7 — window can never be dragged off-screen
+      const ny = nhClamp(oy + (e.clientY - sheetDrag.sy), 4, Math.max(4, vh - 46));
       sheetDrag.nx = Math.round(nx); sheetDrag.ny = Math.round(ny); sheetDrag.moved = true;
       modalEl.style.left = `${sheetDrag.nx}px`;
       modalEl.style.top = `${sheetDrag.ny}px`;
@@ -3521,6 +3525,11 @@ export function setup(ctx) {
   function destroyHalo() {
     if (haloBubbleEl) { haloBubbleEl.remove(); haloBubbleEl = null; }
     haloImgEl = null;
+    // 2.5.6 — THE HALO IS A SINGLETON. An in-place extension Update leaves the
+    // old module's bubble orphaned in the DOM (the new instance can't see it),
+    // and a raced watchdog could double-mount. So (re)creation sweeps EVERY
+    // stray bubble on the page, not just the one this instance tracks.
+    try { document.querySelectorAll('.nh-halo-float').forEach((n) => n.remove()); } catch (_) {}
   }
 
   function buildHaloEl() {
