@@ -16,6 +16,12 @@ No build step required — `dist/` is hand-written, dependency-free ES2022 and i
 
 ---
 
+## What's new in 2.5.8 — note link goes vector 🔗✨
+
+The wiki-link toolbar button (insert `[[Note]]` links) traded its 🔗 emoji
+for a crisp chain-link SVG in the shared icon library — matches the rest of
+the vector toolbar, follows the accent color.
+
 ## What's new in 2.5.7 — float window drag desync, fixed 🤝📱
 
 Android report (with gif): after dragging, the window ended up half off the
