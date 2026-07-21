@@ -205,6 +205,10 @@ const NH_CSS = `
   .nh-editor-surface[contenteditable="false"] { cursor: default; }
   .nh-editor-surface::selection { background: color-mix(in srgb, var(--nh-accent) 32%, transparent); }
   .nh-editor-surface [contenteditable="false"] { -webkit-user-select: none; user-select: none; }
+  /* 2.6.0 — iOS/WebKit REFUSES the caret entirely when any effective rule up the
+     chain resolves to user-select: none (desktop Chrome shrugs that combo off,
+     Safari does not). Say it out loud on every editable field. */
+  .nh-editor-surface, .nh-source, .nh-title, .nh-search input, .nh-findbar input { -webkit-user-select: text; user-select: text; }
 
   .nh-statusbar {
     flex: 0 0 auto; display: flex; align-items: center; gap: 12px;
@@ -283,6 +287,11 @@ const NH_CSS = `
       box-shadow: 0 24px 70px rgba(0,0,0,.62); max-height: none; }
     .nh-modal.nh-floatwin .nh-sheeth { height: 18px; cursor: grab; }
     .nh-modal.nh-floatwin .nh-sheeth::after { width: 66px; background: var(--nh-accent); }
+    /* 2.6.0 — iOS can squash the writing box to ~0px while refitting around its
+       keyboard; a hard floor keeps it tappable no matter what. */
+    @supports (-webkit-touch-callout: none) {
+      .nh-surfacewrap, .nh-srcwrap { min-height: 110px; }
+    }
     .nh-mhead { flex-wrap: wrap; row-gap: 7px; }
     .nh-search { order: 5; flex-basis: 100%; }
     .nh-title { font-size: 16px; }
@@ -480,6 +489,7 @@ const NH_CSS = `
   .nh-mode-source .nh-srcwrap { display: flex; flex: 1; min-height: 0; }
   .nh-mode-source .nh-source { display: block; flex: 1; width: 100%; border: 0; outline: none; resize: none; background: var(--nh-bg); color: var(--nh-text); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: var(--nh-editor-fs, 13.5px); line-height: var(--nh-editor-lh, 1.55); padding: 12px 14px; tab-size: 2; }
   .nh-linegutter { flex: 0 0 auto; width: 3.2em; margin: 0; padding: 12px 7px 12px 0; text-align: right; overflow: hidden; user-select: none; color: var(--nh-muted); opacity: .55; border-right: 1px solid var(--nh-border); background: color-mix(in srgb, var(--nh-bg) 70%, transparent); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: calc(var(--nh-editor-fs, 13.5px) - 1px); line-height: var(--nh-editor-lh, 1.55); white-space: pre; }
+  .nh-linegutter .nh-gl { display: flex; justify-content: flex-end; align-items: flex-start; } /* 2.5.9 — wrap-aware rows */
 
   /* find & replace bar */
   .nh-findbar { display: none; flex: 0 0 auto; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid var(--nh-border); flex-wrap: wrap; }
@@ -997,6 +1007,7 @@ export function setup(ctx) {
     navCounters: { wf: true, wF: true, cf: false, cF: false, tf: false, tF: false, nf: false },
     ifaceIcons: { folder: '', note: '', tag: '' },
     clearBackdrop: false, // 2.5.5 — park notes next to chat, no dim wall
+    quietBoot: false, // 2.6.1 — mute the per-session "hello" load toast (Settings → Appearance → Quiet start)
     // 2.5.3 — FLOAT IS THE PHONE DEFAULT ("at 100% zoom it eats the whole
     // screen"): notes open in a centered, draggable window; `phoneDocked`
     // is the opt-out back to the classic bottom sheet.
@@ -1345,10 +1356,30 @@ export function setup(ctx) {
   const wordsEl = overlayWrap.querySelector('.nh-words');
   const whenEl = overlayWrap.querySelector('.nh-when');
 
+  /* 2.6.0 — THE iOS TYPING FREEZE. While ANY editable field inside the sheet has
+     focus, notehaven refuses to refit its own geometry. Why: iOS fires viewport
+     resize when its keyboard opens; reseating/resizing the focused surface in
+     exactly that moment makes WebKit drop the caret and swallow every keystroke
+     ("clicked the box, keyboard came up, nothing types"). */
+  const nhIsEditable = (n) => !!(n && (n.isContentEditable || /^(INPUT|TEXTAREA)$/.test(n.tagName || '')));
+  modalEl.addEventListener('focusin', (e) => {
+    if (nhIsEditable(e.target)) state._nhTyping = true; // keyboard is coming — freeze geometry
+  });
+  modalEl.addEventListener('focusout', () => {
+    setTimeout(() => {
+      if (nhIsEditable(document.activeElement)) return; // focus hopped to another field — still typing
+      if (!state._nhTyping) return;
+      state._nhTyping = false;
+      // keyboard gone — re-seat once into the full-height viewport
+      if (state.modalOpen && (window.innerWidth || 1280) <= 560) { applyUi(); nurseSheetIntoView(); }
+    }, 130);
+  });
+
   /* ---------------- modal open/close ---------------- */
 
   function openModal(noteId) {
     state.modalOpen = true;
+    state._nhTyping = false; // 2.6.0 — fresh session, never inherit a stale typing freeze
     overlay.classList.add('nh-open');
     setTimeout(nurseSheetIntoView, 60); // portrait: the topbar must exist
     setTimeout(nurseSheetIntoView, 480); // …and again once fonts/insets settle
@@ -2107,7 +2138,11 @@ export function setup(ctx) {
   addResizer(rszE, true, false);   // right edge: width
   addResizer(rszS, false, true);   // bottom edge: height
 
-  const onWinResize = debounce(() => applyUi(), 160);
+  // 2.6.0 — many iOS versions ALSO fire window resize for the keyboard; same freeze
+  const onWinResize = debounce(() => {
+    if (state._nhTyping && (window.innerWidth || 1280) <= 560) return;
+    applyUi();
+  }, 160);
   window.addEventListener('resize', onWinResize);
   disposers.push(() => window.removeEventListener('resize', onWinResize));
 
@@ -2486,6 +2521,35 @@ export function setup(ctx) {
     const k = e.key.toLowerCase();
     if (k === 'b') { e.preventDefault(); exec('bold'); }
     else if (k === 'i') { e.preventDefault(); exec('italic'); }
+  });
+
+  /* 2.6.0 — iOS caret fallback. WebKit's own hit-test on a contenteditable whiffs
+     on EMPTY notes and on taps BELOW the last line: no caret, sometimes not even
+     the keyboard. Focus the surface ourselves inside the real gesture and aim
+     the caret at the tap point (or at the text end when tapping empty space). */
+  const surfaceWrap = overlayWrap.querySelector('.nh-surfacewrap');
+  surfaceWrap.addEventListener('pointerup', (e) => {
+    if (preview.getAttribute('contenteditable') !== 'true') return; // read/source mode — nothing to focus
+    if (e.button > 0) return;
+    if (e.target.closest('button, a, input, textarea, .nh-wikilink, .nh-task, .nh-imgbox')) return; // widgets handle themselves
+    if (document.activeElement === preview) return; // already editing — never clobber a live caret
+    preview.focus(); // legal on iOS from inside a genuine user gesture
+    let aimed = false;
+    try {
+      const r = document.caretRangeFromPoint ? document.caretRangeFromPoint(e.clientX, e.clientY) : null;
+      if (r && preview.contains(r.startContainer)) {
+        const sel = window.getSelection();
+        if (sel) { sel.removeAllRanges(); sel.addRange(r); aimed = true; }
+      }
+    } catch (_) {}
+    if (!aimed) { // tap landed in empty space — park the caret at the very end
+      try {
+        const sel = window.getSelection();
+        const r = document.createRange();
+        r.selectNodeContents(preview); r.collapse(false);
+        if (sel) { sel.removeAllRanges(); sel.addRange(r); }
+      } catch (_) {}
+    }
   });
 
   titleInput.addEventListener('input', () => {
@@ -3709,7 +3773,7 @@ export function setup(ctx) {
       state._haloSaidHello = true;
       el.classList.add('nh-hi'); // 2.4.2 visual "here I am!"
       setTimeout(() => el.classList.remove('nh-hi'), 2600);
-      setTimeout(() => toast('info', 'Notehaven is the pulsing moon-book orb 🌙📖 tap it for your notes'), 900);
+      if (!state.settings.ui.quietBoot) setTimeout(() => toast('info', 'Notehaven is the pulsing moon-book orb 🌙📖 tap it for your notes'), 900); // 2.6.1
     }
 
     // self-heal watchdog: if the host somehow eats the bubble (detached or
@@ -3908,6 +3972,10 @@ export function setup(ctx) {
               <span class="nh-switch"><input type="checkbox" class="nh-clearbg-sw"><span class="nh-track"></span></span>
             </div>
             <div class="nh-field">
+              <div><label>Quiet start</label><div class="nh-desc">Mute the little “hello” toast Notehaven pops when Lumiverse loads. The Halo still gives its tiny hello pulse — just no notification.</div></div>
+              <span class="nh-switch"><input type="checkbox" class="nh-quietboot-sw"><span class="nh-track"></span></span>
+            </div>
+            <div class="nh-field">
               <div><label>Editor font size</label></div>
               <div class="nh-slider"><input type="range" class="nh-ui-font" min="11" max="17" step="0.5"><output></output></div>
             </div>
@@ -3947,6 +4015,7 @@ export function setup(ctx) {
   const uiAccent = settingsWrap.querySelector('.nh-ui-accent');
   const uiTheme = settingsWrap.querySelector('.nh-ui-theme');
   const clearBgSw = settingsWrap.querySelector('.nh-clearbg-sw'); // 2.5.5
+  const quietBootSw = settingsWrap.querySelector('.nh-quietboot-sw'); // 2.6.1
   // the Halo's controls live at the top of Settings — one cozy home for everything
   settingsWrap.querySelector('.nh-sbody').prepend(haloRoot);
 
@@ -4150,6 +4219,7 @@ export function setup(ctx) {
     themeBtn.title = light ? 'Switch to dark theme' : 'Switch to light theme';
     if (uiTheme) uiTheme.value = u.theme || 'auto';
     if (clearBgSw) clearBgSw.checked = clearBg; // 2.5.5
+    if (quietBootSw) quietBootSw.checked = !!u.quietBoot; // 2.6.1
     modalEl.style.setProperty('--nh-editor-fs', `${u.fontSize}px`);
 
     // rail width — overlay mode on phones gets a viewport-capped width
@@ -4181,8 +4251,9 @@ export function setup(ctx) {
       modalEl.style.top = '';
     }
     // 2.5.0 — phones choose: bottom sheet (default) or a real FLOATING window
-    if (!showSheet && isPhoneFloat()) applyPhoneFloat();
-    else { clearPhoneFloat(); if (!showSheet) applySheetHeight(u.sheetH || null); }
+    // 2.6.0 — typing freeze: geometry NEVER refits mid-keystroke (iOS caret death)
+    if (!showSheet && isPhoneFloat()) { if (!state._nhTyping) applyPhoneFloat(); }
+    else { clearPhoneFloat(); if (!showSheet && !state._nhTyping) applySheetHeight(u.sheetH || null); }
     nurseSheetIntoView();
     modalEl.classList.toggle('nh-min', !!u.minimized);
     wsMinBtn.innerHTML = u.minimized ? ICONS.square : ICONS.minus; // 2.5.2 — vector states
@@ -4242,6 +4313,11 @@ export function setup(ctx) {
     state.settings.ui.clearBackdrop = clearBgSw.checked; // 2.5.5
     saveSettingsSoon();
     applyUi();
+  });
+  quietBootSw.addEventListener('change', () => {
+    state.settings.ui.quietBoot = quietBootSw.checked; // 2.6.1 — no more load toast when on
+    saveSettingsSoon();
+    toast('info', quietBootSw.checked ? 'Quiet start on — no more toast when Notehaven loads 🤫' : 'Load toast is back — Notehaven will say hi on start 🌙');
   });
   settingsBtn.addEventListener('click', openSettings);
   settingsWrap.querySelector('.nh-sc-close').addEventListener('click', closeSettings);
@@ -4406,6 +4482,9 @@ export function setup(ctx) {
       placeHaloBubble(state.settings.logo.x, state.settings.logo.y);
     }
     // rotating the phone: re-clamp the sheet/modal and verify the header seat
+    // 2.6.0 — this very listener ALSO fires when iOS shows/hides its keyboard;
+    // refitting then murders the caret. Frozen while typing.
+    if (state._nhTyping) return;
     applyUi();
     nurseSheetIntoView();
   }, 120);
@@ -5229,16 +5308,50 @@ export function setup(ctx) {
     syncGutter();
   }
 
+  /* 2.5.9 — wrap-aware line numbers. A long paragraph WRAPS into several
+     visual rows, but the old gutter numbered only logical lines, so every
+     number below drifted off its text (your screenshot). We measure each
+     logical line's real wrapped height in a hidden mirror styled exactly
+     like the textarea, and give each gutter row that exact pixel height.
+     Per-line caching + a typing debounce keep big notes fast. */
+  const gutterMirror = document.createElement('div');
+  gutterMirror.setAttribute('aria-hidden', 'true');
+  gutterMirror.style.cssText = 'position:absolute;left:-99999px;top:0;visibility:hidden;pointer-events:none;box-sizing:border-box;margin:0;border:0;padding:0;white-space:pre-wrap;overflow-wrap:break-word;';
+  (document.body || document.documentElement).appendChild(gutterMirror);
+  disposers.push(() => gutterMirror.remove());
+  const gLineHCache = new Map();
+  const gFontKey = { v: '' };
   function syncGutter() {
     if (!state.settings.editor.lineNumbers) { gutterEl.textContent = ''; return; }
-    const lines = (sourceEl.value || '').split('\n').length;
-    let s = '';
-    for (let i = 1; i <= lines; i++) s += i + '\n';
-    gutterEl.textContent = s;
+    const lines = (sourceEl.value || '').split('\n');
+    const cs = getComputedStyle(sourceEl);
+    const padL = parseFloat(cs.paddingLeft) || 0;
+    const padR = parseFloat(cs.paddingRight) || 0;
+    const w = Math.max(40, sourceEl.clientWidth - padL - padR); // the textarea's real content width
+    const fk = `${cs.fontSize}|${cs.lineHeight}|${cs.fontFamily}|${cs.tabSize}|${Math.round(w)}`;
+    if (fk !== gFontKey.v) { gLineHCache.clear(); gFontKey.v = fk; } // font/zoom/width changed
+    const ms = gutterMirror.style;
+    ms.fontFamily = cs.fontFamily; ms.fontSize = cs.fontSize; ms.lineHeight = cs.lineHeight;
+    ms.letterSpacing = cs.letterSpacing; ms.tabSize = cs.tabSize; ms.width = `${Math.round(w)}px`;
+    const rows = [];
+    for (let i = 0; i < lines.length; i++) {
+      const t = lines[i];
+      const key = fk + '|' + t;
+      let h = gLineHCache.get(key);
+      if (!h) {
+        gutterMirror.textContent = t === '' ? ' ' : t;
+        h = gutterMirror.offsetHeight || (parseFloat(cs.lineHeight) || 22);
+        if (gLineHCache.size > 6000) gLineHCache.clear();
+        gLineHCache.set(key, h);
+      }
+      rows.push(`<div class="nh-gl" style="height:${h}px">${i + 1}</div>`);
+    }
+    gutterEl.innerHTML = rows.join('');
     gutterEl.scrollTop = sourceEl.scrollTop;
   }
+  const syncGutterSoon = debounce(() => syncGutter(), 110);
   sourceEl.addEventListener('scroll', () => { gutterEl.scrollTop = sourceEl.scrollTop; });
-  sourceEl.addEventListener('input', syncGutter);
+  sourceEl.addEventListener('input', syncGutterSoon);
 
   /* smart source-mode keys: Tab indent, auto-pair, smart lists */
   const NH_PAIRS = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'", '`': '`' };

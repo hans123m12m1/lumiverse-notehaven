@@ -16,6 +16,47 @@ No build step required — `dist/` is hand-written, dependency-free ES2022 and i
 
 ---
 
+## What's new in 2.6.1 — quiet start 🤫
+
+Requested: *“add an option to disable the toast notification when Notehaven
+loads.”* Done — **Settings → Appearance → Quiet start**. Flip it on and the
+little “Notehaven is the pulsing moon-book orb…” hello toast at load stays
+silent. The Halo still gives its subtle one-time hello *pulse* (visual only,
+no notification), and every other toast — saves dizziness, errors, warnings
+— keeps working exactly as before. Defaults to **off**, so nothing changes
+until you ask it to.
+
+## What's new in 2.6.0 — iOS typing rescue ⌨️🍏
+
+**"On iOS I'm not able to type anything when I click in the box."** — fixed.
+iOS is the one platform where the keyboard opening fires *viewport resize*
+events, and Notehaven was refitting its float window / sheet around the
+reduced height at that exact moment. WebKit drops the caret when the focused
+surface moves mid-transition → keyboard up, box focused… and zero typed
+characters. Four-layer fix:
+
+- 🧊 **Typing freeze** — while *any* field inside the sheet has focus, all
+  geometry refits (float re-seat, sheet resize, viewport-resize handlers) are
+  refused. When the keyboard closes, the window re-seats once, cleanly.
+- 🖱 **user-select: text** on every editable field — WebKit flat-out refuses
+  the caret when any rule up the chain resolves to `user-select: none`
+  (desktop Chrome ignores that combo; Safari does not). Now it's explicit.
+- 👆 **Tap-to-focus fallback** — WebKit's own hit-test whiffs on empty notes
+  and taps *below* the last line; we now focus the surface inside the real
+  tap and aim the caret at the exact point (`caretRangeFromPoint`), or park
+  it at the end of the text.
+- 📐 **iOS min-height floor** — the writing box can never squash to ~0 px
+  during keyboard refits (110 px hard floor, iOS-scoped via `@supports`).
+
+## What's new in 2.5.9 — wrap-aware line numbers 📏
+
+Write a long paragraph in ⌨ Source view and the line numbers used to drift
+away from the text (the gutter counted *logical* lines while long lines
+*wrap* into several visual rows). Now every gutter row is measured against
+the line's real wrapped height — numbers follow your content exactly, even
+for wall-of-text paragraphs. Per-line caching + a typing debounce keep big
+notes speedy.
+
 ## What's new in 2.5.8 — note link goes vector 🔗✨
 
 The wiki-link toolbar button (insert `[[Note]]` links) traded its 🔗 emoji
