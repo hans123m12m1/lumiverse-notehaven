@@ -16,6 +16,58 @@ No build step required — `dist/` is hand-written, dependency-free ES2022 and i
 
 ---
 
+## What's new in 2.6.4 — toast wall killer 🧱🔕
+
+*“I get a wall of toasts every time I open Lumi.”* — gone. Lumiverse re-runs
+extension setup on navigation/re-init, and every run re-armed the boot
+timers → the same toast (e.g. *“The Halo is hidden by your settings…”*)
+stacked N deep.
+
+- 🧱 **Dedupe engine** — identical toasts can no longer stack: the same
+  message within 9 s is silently dropped, window-keyed so it survives full
+  module re-inits.
+- 🤫 **Quiet start now covers reminders too** — the halo “hidden / rescued”
+  notices and the phone-float intro join the load hello-toast under the
+  **Settings → Appearance → Quiet start** switch. Errors and warnings are
+  NEVER muted, and any toast can still show again after its 9 s cooldown.
+
+## What's new in 2.6.3 — touch audit 🧹📱
+
+Full audit sweep of the float window, rail, drawer and halo. Found and fixed:
+
+- 👆 **Long-press follow-through** — hold a row on touch to open its context
+  menu, and on *release* the browser fired a normal click on that same row:
+  the note ALSO opened / the folder ALSO toggled behind the menu. Every
+  click path (file-tree notes & folders, rail items, rail folder headers,
+  drawer recents) now has the same 900 ms guard the right-click path always
+  had.
+- 🧊 **Watchdog joins the typing freeze** — the portrait seat watchdog could
+  still call the float re-seat while you were mid-keystroke on iOS; it now
+  obeys the 2.6.0 freeze too.
+
+Audited & clean: no unescaped HTML in rails/trees, saves flush on close/teardown,
+index↔render refresh pipeline, badge roll-ups, sheet/float geometry handoffs.
+
+## What's new in 2.6.2 — tree armor 🗂🛡
+
+Report: *“the file tree doesn't render subfolders.”* The frame you sent
+actually shows nesting working (Templates is a subfolder of Sheets — badge
+math 557w + 1228w = 1785w ✓), so the base engine is sound — but it had
+three *silent invisibility* paths. All closed:
+
+- 👻 **Orphan rescue** — a folder whose `parentId` points at a folder that
+  no longer exists (legacy data, partial import, sync race) used to vanish
+  from the tree **with its whole subtree and every note inside**. Orphans
+  are now reattached at root depth, children intact.
+- ♾ **Cycle guard** — an A↔B parent loop recursed forever and hard-crashed
+  the whole tree pane (blank render). A visited set now breaks the loop; the
+  folders still render.
+- 🧱 **Row shields** — one poisoned row (corrupt icon/title data) can no
+  longer take down the rest of the branch or everything rendered after it.
+- 📂 **Auto-unfold** — a subfolder created inside a *collapsed* parent now
+  unfolds the parent instantly, so the child is on screen the moment it
+  exists.
+
 ## What's new in 2.6.1 — quiet start 🤫
 
 Requested: *“add an option to disable the toast notification when Notehaven

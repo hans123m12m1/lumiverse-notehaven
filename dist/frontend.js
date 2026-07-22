@@ -986,7 +986,20 @@ export function setup(ctx) {
   });
   disposers.push(unsubBackend);
 
-  const toast = (level, message) => rpc('toast', { level, message }).catch(() => {});
+  // 2.6.4 — TOAST WALL KILLER. Lumiverse can re-run setup on navigation/re-init;
+  // every run re-armed the boot timers → the SAME toast stacked N deep on screen
+  // ("The Halo is hidden…" ×3). Identical toasts within a few seconds are
+  // reminders, not information — dedupe them. Keyed on window so it survives
+  // full module re-inits, not just one setup() lifetime.
+  const toastSeen = (window.__nhToastSeen instanceof Map ? window.__nhToastSeen : (window.__nhToastSeen = new Map()));
+  const toast = (level, message) => {
+    const k = level + '|' + String(message);
+    const now = Date.now();
+    if (now - (toastSeen.get(k) || 0) < 9000) return Promise.resolve(); // already on screen — don't stack
+    toastSeen.set(k, now);
+    if (toastSeen.size > 60) toastSeen.clear(); // unbounded growth guard on long sessions
+    return rpc('toast', { level, message }).catch(() => {});
+  };
 
   /* ---------------- shared state ---------------- */
 
@@ -1198,7 +1211,7 @@ export function setup(ctx) {
      the user with no topbar. Landscape (desktop modal path) is untouched. */
   const nurseSheetIntoView = () => {
     if ((window.innerWidth || 1280) > 560 || !state.modalOpen) return; // phones/portrait sheet only
-    if (isPhoneFloat()) { applyPhoneFloat(); return; } // 2.5.0 — float self-clamps, never nuke it
+    if (isPhoneFloat()) { if (!state._nhTyping) applyPhoneFloat(); return; } // 2.6.3 — the typing freeze covers the watchdog too
     const r = mheadEl.getBoundingClientRect();
     const bad = !r || r.height === 0 || r.top < -2 || r.bottom < 24 || r.top > nhViewH() - 24;
     if (!bad) return;
@@ -1245,7 +1258,7 @@ export function setup(ctx) {
     modalEl.style.removeProperty('--nh-sheet-h');
     sheetHandle.title = 'Drag to move · double-tap to re-center';
     if (u.floatX != null && (x !== u.floatX || y !== u.floatY)) { u.floatX = Math.round(x); u.floatY = Math.round(y); } // self-heal after rotate/keyboard
-    if (!state._floatIntro) { // 2.5.3 — tell phone users the new default exists (dock-back is one tap)
+    if (!state._floatIntro && !state.settings.ui.quietBoot) { // 2.6.4 — quiet start mutes this intro too
       state._floatIntro = true;
       setTimeout(() => toast('info', '🎈 Notes now float in a draggable window on phones — move it by the top pill. Prefer the full sheet? ⋯ menu → Dock to bottom.'), 650);
     }
@@ -1489,7 +1502,7 @@ export function setup(ctx) {
       </div>
       ${meta.snippet ? `<div class="nh-li-snippet">${escapeHtml(meta.snippet)}</div>` : ''}
       <div class="nh-li-meta"><span>${fmtDate(meta.updatedAt)}</span><span>${meta.words ?? 0}w · ~${meta.tokens ?? Math.ceil((meta.words || 0) * 1.25) ?? 0}t</span></div>`;
-    item.addEventListener('click', onClick);
+    item.addEventListener('click', (e) => { if (Date.now() - state.lastLPAt < 900) return; onClick(e); }); // 2.6.3 — long-press follow-through guard
     item.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       if (Date.now() - state.lastLPAt < 900) return; // already opened by long-press
@@ -1596,7 +1609,7 @@ export function setup(ctx) {
     }
     // dropdown behavior: tap (anywhere on the row, chevron included) hides/shows its notes
     hdr.title = collapsed ? `Show notes in “${section.name}”` : `Hide notes in “${section.name}”`;
-    hdr.addEventListener('click', () => toggleCollapse(section.id));
+    hdr.addEventListener('click', () => { if (Date.now() - state.lastLPAt < 900) return; toggleCollapse(section.id); }); // 2.6.3
     if (section.folder) {
       hdr.addEventListener('contextmenu', (e) => {
         e.preventDefault();
@@ -1888,6 +1901,11 @@ export function setup(ctx) {
       try {
         const { index } = await rpc('create_folder', { name: 'New folder', parentId: folder.id });
         state.index = index;
+        // 2.6.2 — a subfolder born inside a COLLAPSED parent looked invisible;
+        // unfold the parent so the child is on screen the moment it exists
+        const cl = state.settings.ui.collapsed || (state.settings.ui.collapsed = []);
+        const ci = cl.indexOf('ft:' + folder.id);
+        if (ci >= 0) { cl.splice(ci, 1); saveSettingsSoon(); }
         renderList();
         toast('success', `Subfolder created inside “${folder.name}” 🗂`);
       } catch (err) { toast('error', err.message || 'Could not create subfolder'); }
@@ -3040,10 +3058,27 @@ export function setup(ctx) {
       byParent.get(k).push(f);
     }
     const ordered = (list) => [...list].sort((a, b) => ((b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)) || String(a.name).localeCompare(String(b.name)));
-    const walk = (pid, depth) => ordered(byParent.get(pid) || [])
-      .filter((f) => f.id !== pid) // self-parent never recurses
-      .map((f) => ({ folder: f, depth, notes: notes.filter((n) => n.folderId === f.id), children: walk(f.id, depth + 1) }));
-    return { notes: notes.filter((n) => !n.folderId), children: walk('', 0) };
+    // 2.6.2 — TREE ARMOR so subfolders can NEVER silently not-render:
+    //  · ORPHAN RESCUE — a folder whose parentId points at a GONE folder (ghost
+    //    parent: legacy data, partial import, sync race) used to vanish from the
+    //    tree TOGETHER WITH its whole subtree and every note inside. Any folder
+    //    the root walk never reaches is reattached at root depth, subtree intact.
+    //  · CYCLE ARMOR — a visited set stops A→B→A parent loops from recursing
+    //    forever and hard-crashing the entire tree render (blank pane).
+    const go = (f, depth, seen) => ({ folder: f, depth, notes: notes.filter((n) => n.folderId === f.id), children: walk(f.id, depth + 1, seen) });
+    function walk(pid, depth, seen) {
+      return ordered(byParent.get(pid) || [])
+        .filter((f) => f.id !== pid && !seen.has(f.id)) // self-parent & already-placed never descend
+        .map((f) => { seen.add(f.id); return go(f, depth, seen); });
+    }
+    const seen = new Set();
+    const children = walk('', 0, seen);
+    for (const f of folders) { // orphans (incl. cycle-trapped) reattach at root
+      if (seen.has(f.id)) continue;
+      seen.add(f.id);
+      children.push(go(f, 0, seen));
+    }
+    return { notes: notes.filter((n) => !n.folderId), children };
   }
   function folderTotals(node) {
     let words = 0, tokens = 0, chars = 0, subs = node.children.length, count = node.notes.length;
@@ -3165,6 +3200,7 @@ export function setup(ctx) {
     row.innerHTML = `<span class="nh-nav-ico">${showIcon ? (noteIconHtml(meta, 13) || '<span class="nh-nico-dot" style="background:' + (meta.color || '#b28cff') + ';width:8px;height:8px;border-radius:50%;display:inline-block"></span>') : ''}</span><span class="nh-nav-title">${escapeHtml(meta.title)}</span>${navFileBadgeHtml(meta)}`;
     row.title = `${meta.title} — ${meta.words ?? 0} words · ~${meta.tokens ?? 0} tokens · ${meta.chars ?? 0} chars · ${meta.newlines ?? 0} ↵ · ${fmtDate(meta.updatedAt)}`;
     row.addEventListener('click', () => {
+      if (Date.now() - state.lastLPAt < 900) return; // 2.6.3 — no follow-through tap after a long-press menu
       // Expand-on-selection: unfold the note's folder chain
       if (state.settings.ui.navExpandSelect !== false && meta.folderId) {
         const list = state.settings.ui.collapsed || [];
@@ -3212,7 +3248,7 @@ export function setup(ctx) {
     row.dataset.folderId = folder.id;
     const fico = state.settings.ui.navShowFolderIcons === false ? '' : folderIconHtml(folder);
     row.innerHTML = `<span class="nh-nav-chev">${ICONS.chev}</span>${fico}<span class="nh-nav-title">${escapeHtml(folder.name)}</span>${folder.pinned ? '<span class="nh-fpin">📌</span>' : ''}<span class="nh-nbadge" title="${totals.count} note(s) · ${cbits.join(' · ') || 'counters off'}${totals.subs ? ` · ${totals.subs} subfolder(s)` : ''}">${fBadge}</span>`;
-    row.addEventListener('click', () => navToggleCollapse(key));
+    row.addEventListener('click', () => { if (Date.now() - state.lastLPAt < 900) return; navToggleCollapse(key); }); // 2.6.3
     row.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       if (Date.now() - state.lastLPAt < 900) return;
@@ -3256,8 +3292,14 @@ export function setup(ctx) {
     });
     frag.appendChild(row);
     if (!collapsed) {
-      for (const n of sortNotes(notes, state.settings.ui.navSort)) frag.appendChild(navNoteRow(n, depth + 1));
-      for (const c of children) frag.appendChild(navFolderRow(c));
+      // 2.6.2 — one poisoned row (corrupt icon/title data) must never take
+      // down the rest of the branch or everything rendered after it
+      for (const n of sortNotes(notes, state.settings.ui.navSort)) {
+        try { frag.appendChild(navNoteRow(n, depth + 1)); } catch (_) { /* skip the one bad row */ }
+      }
+      for (const c of children) {
+        try { frag.appendChild(navFolderRow(c)); } catch (_) { /* skip the one bad row */ }
+      }
     }
     return frag;
   }
@@ -3972,7 +4014,7 @@ export function setup(ctx) {
               <span class="nh-switch"><input type="checkbox" class="nh-clearbg-sw"><span class="nh-track"></span></span>
             </div>
             <div class="nh-field">
-              <div><label>Quiet start</label><div class="nh-desc">Mute the little “hello” toast Notehaven pops when Lumiverse loads. The Halo still gives its tiny hello pulse — just no notification.</div></div>
+              <div><label>Quiet start</label><div class="nh-desc">Mute Notehaven's load-time chatter: the hello toast, halo reminders (“hidden / rescued”), and the phone-float intro. Errors and warnings ALWAYS still show — and identical toasts never stack (2.6.4).</div></div>
               <span class="nh-switch"><input type="checkbox" class="nh-quietboot-sw"><span class="nh-track"></span></span>
             </div>
             <div class="nh-field">
@@ -4317,7 +4359,7 @@ export function setup(ctx) {
   quietBootSw.addEventListener('change', () => {
     state.settings.ui.quietBoot = quietBootSw.checked; // 2.6.1 — no more load toast when on
     saveSettingsSoon();
-    toast('info', quietBootSw.checked ? 'Quiet start on — no more toast when Notehaven loads 🤫' : 'Load toast is back — Notehaven will say hi on start 🌙');
+    toast('info', quietBootSw.checked ? 'Quiet start on — load & halo-reminder toasts muted 🤫' : 'Load chatter is back — Notehaven will say hi again 🌙');
   });
   settingsBtn.addEventListener('click', openSettings);
   settingsWrap.querySelector('.nh-sc-close').addEventListener('click', closeSettings);
@@ -5526,9 +5568,9 @@ export function setup(ctx) {
             state.settings.logo.x = null;
             state.settings.logo.y = null;
             createHalo();
-            toast('info', 'Halo rescued ✨ the floating logo is back — drag it anywhere.');
-          } else if (!state.settings.logo.visible) {
-            toast('info', "The Halo is hidden by your settings — bring it back via the Extras 'toggle-halo' action, or Settings → Logo → Show logo.");
+            if (!state.settings.ui.quietBoot) toast('info', 'Halo rescued ✨ the floating logo is back — drag it anywhere.'); // 2.6.4
+          } else if (!state.settings.logo.visible && !state.settings.ui.quietBoot) {
+            toast('info', "The Halo is hidden by your settings — bring it back via the Extras 'toggle-halo' action, or Settings → Logo → Show logo."); // 2.6.4
           }
         } catch (_) {}
       }, 2000);
