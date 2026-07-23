@@ -993,6 +993,7 @@ export function setup(ctx) {
   // full module re-inits, not just one setup() lifetime.
   const toastSeen = (window.__nhToastSeen instanceof Map ? window.__nhToastSeen : (window.__nhToastSeen = new Map()));
   const toast = (level, message) => {
+    if (state.settings?.ui?.silentToasts && (level === 'info' || level === 'success')) return Promise.resolve(); // 2.6.5 — Silence mode: everyday chatter off; errors/warnings NEVER silenced
     const k = level + '|' + String(message);
     const now = Date.now();
     if (now - (toastSeen.get(k) || 0) < 9000) return Promise.resolve(); // already on screen — don't stack
@@ -1021,6 +1022,7 @@ export function setup(ctx) {
     ifaceIcons: { folder: '', note: '', tag: '' },
     clearBackdrop: false, // 2.5.5 — park notes next to chat, no dim wall
     quietBoot: false, // 2.6.1 — mute the per-session "hello" load toast (Settings → Appearance → Quiet start)
+    silentToasts: false, // 2.6.5 — SILENT MODE: no everyday toasts at all (errors & warnings still show)
     // 2.5.3 — FLOAT IS THE PHONE DEFAULT ("at 100% zoom it eats the whole
     // screen"): notes open in a centered, draggable window; `phoneDocked`
     // is the opt-out back to the classic bottom sheet.
@@ -4018,6 +4020,10 @@ export function setup(ctx) {
               <span class="nh-switch"><input type="checkbox" class="nh-quietboot-sw"><span class="nh-track"></span></span>
             </div>
             <div class="nh-field">
+              <div><label>Silent mode</label><div class="nh-desc">The big one 🔕 — NO Notehaven toasts for everyday actions (pins, moves, creates, saves, intros, reminders). Errors & warnings still get through, because a failed save should never be invisible. (Friend-approved.)</div></div>
+              <span class="nh-switch"><input type="checkbox" class="nh-silenttoasts-sw"><span class="nh-track"></span></span>
+            </div>
+            <div class="nh-field">
               <div><label>Editor font size</label></div>
               <div class="nh-slider"><input type="range" class="nh-ui-font" min="11" max="17" step="0.5"><output></output></div>
             </div>
@@ -4058,6 +4064,7 @@ export function setup(ctx) {
   const uiTheme = settingsWrap.querySelector('.nh-ui-theme');
   const clearBgSw = settingsWrap.querySelector('.nh-clearbg-sw'); // 2.5.5
   const quietBootSw = settingsWrap.querySelector('.nh-quietboot-sw'); // 2.6.1
+  const silentToastsSw = settingsWrap.querySelector('.nh-silenttoasts-sw'); // 2.6.5
   // the Halo's controls live at the top of Settings — one cozy home for everything
   settingsWrap.querySelector('.nh-sbody').prepend(haloRoot);
 
@@ -4262,6 +4269,7 @@ export function setup(ctx) {
     if (uiTheme) uiTheme.value = u.theme || 'auto';
     if (clearBgSw) clearBgSw.checked = clearBg; // 2.5.5
     if (quietBootSw) quietBootSw.checked = !!u.quietBoot; // 2.6.1
+    if (silentToastsSw) silentToastsSw.checked = !!u.silentToasts; // 2.6.5
     modalEl.style.setProperty('--nh-editor-fs', `${u.fontSize}px`);
 
     // rail width — overlay mode on phones gets a viewport-capped width
@@ -4360,6 +4368,12 @@ export function setup(ctx) {
     state.settings.ui.quietBoot = quietBootSw.checked; // 2.6.1 — no more load toast when on
     saveSettingsSoon();
     toast('info', quietBootSw.checked ? 'Quiet start on — load & halo-reminder toasts muted 🤫' : 'Load chatter is back — Notehaven will say hi again 🌙');
+  });
+  silentToastsSw.addEventListener('change', () => {
+    state.settings.ui.silentToasts = silentToastsSw.checked; // 2.6.5 — Silence mode
+    saveSettingsSoon();
+    // deliberately NOT routed through toast(): the mute would eat its own confirmation
+    rpc('toast', { level: 'info', message: silentToastsSw.checked ? 'Silent mode on 🔕 errors & warnings will still get through' : 'Silent mode off — everyday toasts are back' }).catch(() => {});
   });
   settingsBtn.addEventListener('click', openSettings);
   settingsWrap.querySelector('.nh-sc-close').addEventListener('click', closeSettings);

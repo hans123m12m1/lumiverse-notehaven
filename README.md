@@ -16,6 +16,20 @@ No build step required — `dist/` is hand-written, dependency-free ES2022 and i
 
 ---
 
+## What's new in 2.6.5 — silent mode 🔕
+
+Friend feedback: *“find a way that they can disable toast notifs.”* Granted.
+
+- 🔕 **Settings → Appearance → Silent mode** — one switch, and Notehaven
+  stops toasting for everyday actions: pins, moves, creates, saves,
+  intros, reminders, greetings — all of it, at the single source.
+- ⚠️ **Errors & warnings still get through**, always — a failed save or a
+  backend problem should never be invisible.
+- 🗣 The toggle confirms out loud *before* going silent (its own message
+  can't mute itself 🤓), and turning it back off brings the chatter back.
+- 🤝 Works **with** 2.6.4's dedupe wall-killer and 2.6.1's Quiet start:
+  Quiet start = no load chatter · Silent mode = no toast chatter, period.
+
 ## What's new in 2.6.4 — toast wall killer 🧱🔕
 
 *“I get a wall of toasts every time I open Lumi.”* — gone. Lumiverse re-runs
